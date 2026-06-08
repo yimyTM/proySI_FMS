@@ -29,7 +29,7 @@ const app = express();
 
 const allowedOrigins = [
   "http://localhost:3000",
-  "https://proyectosi1-rhk7cxxko-pierreelpro19-gmailcoms-projects.vercel.app",
+  "https://proyectosi1.vercel.app",
 ];
 
 const corsOptions = {
