@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -49,6 +50,7 @@ import {
   Loader2,
   Layers,
   AlertCircle,
+  Info,
 } from "lucide-react";
 import {
   cursosApi,
@@ -69,6 +71,7 @@ const emptyForm = {
   id_aula: 0,
   id_profesor: 0,
   nombre_aula: "",
+  descripcion: "",
 };
 type CursoFieldKey =
   | "id_gestion"
@@ -151,6 +154,7 @@ export default function CursosPage() {
       id_aula: c.id_aula!,
       id_profesor: c.id_profesor ?? 0,
       nombre_aula: c.nombre_aula!,
+      descripcion: c.descripcion ?? "",
     });
     setFieldErrors({});
     setShowDialog(true);
@@ -224,6 +228,7 @@ export default function CursosPage() {
         if (form.id_aula) payload.id_aula = form.id_aula;
         if (form.turno) payload.turno = form.turno;
         if (form.id_profesor) payload.id_profesor = form.id_profesor;
+        payload.descripcion = form.descripcion.trim();
         await cursosApi.update(editId, payload);
       } else {
         await cursosApi.create(form);
@@ -236,6 +241,14 @@ export default function CursosPage() {
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleShowDescription = (curso: CursoDetalle) => {
+    toast.info("Descripción del grupo", {
+      description:
+        curso.descripcion?.trim() || "Este curso aún no tiene descripción.",
+      position: "top-right",
+    });
   };
 
   const handleDuplicate = async (id: number) => {
@@ -504,6 +517,12 @@ export default function CursosPage() {
                                 <BookOpen className="h-4 w-4 mr-2" />
                                 Materias
                               </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => handleShowDescription(c)}
+                              >
+                                <Info className="h-4 w-4 mr-2" />
+                                Descripción
+                              </DropdownMenuItem>
                               <DropdownMenuItem onClick={() => openEdit(c)}>
                                 <Pencil className="h-4 w-4 mr-2" />
                                 Editar
@@ -550,7 +569,7 @@ export default function CursosPage() {
         setShowDialog(open);
         if (!open) setFieldErrors({});
       }}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-xl">
           <DialogHeader>
             <DialogTitle>{editId ? "Editar Curso" : "Nuevo Curso"}</DialogTitle>
           </DialogHeader>
@@ -580,7 +599,7 @@ export default function CursosPage() {
                   </Select>
                   <FieldError field="id_gestion" />
                 </div>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid gap-3 sm:grid-cols-2">
                   <div className="space-y-1">
                     <Label>Grado</Label>
                     <Select
@@ -622,7 +641,7 @@ export default function CursosPage() {
                 </div>
               </>
             )}
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid gap-3 sm:grid-cols-2">
               <div className="space-y-1">
                 <Label>Turno</Label>
                 <Select
@@ -686,6 +705,21 @@ export default function CursosPage() {
                 </SelectContent>
               </Select>
               <FieldError field="id_profesor" />
+            </div>
+            <div className="space-y-1">
+              <Label>Descripción del grupo</Label>
+              <Textarea
+                placeholder="Ej. Grupo participativo con énfasis en lectura y trabajo colaborativo."
+                value={form.descripcion}
+                onChange={(e) =>
+                  updateFormField("descripcion", e.target.value)
+                }
+                className="min-h-24 resize-none"
+                maxLength={300}
+              />
+              <p className="text-xs text-muted-foreground">
+                {form.descripcion.length}/300 caracteres
+              </p>
             </div>
           </div>
           <DialogFooter>

@@ -56,10 +56,12 @@ const getHeaders = () => ({
 })
 
 export default function AsistenciaPage() {
+  const today = new Date().toISOString().slice(0, 10)
   const [cursos, setCursos] = useState<Curso[]>([])
   const [idCurso, setIdCurso] = useState("")
-  const [fecha, setFecha] = useState(new Date().toISOString().slice(0, 10))
+  const [fecha, setFecha] = useState(today)
   const [estudiantes, setEstudiantes] = useState<EstudianteAsistencia[]>([])
+  const [soloLectura, setSoloLectura] = useState(false)
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
 
@@ -81,25 +83,38 @@ export default function AsistenciaPage() {
   useEffect(() => {
     if (!idCurso) return
     const loadAsistencia = async () => {
+      if (fecha > today) {
+        toast.error("La fecha no puede ser futura")
+        setFecha(today)
+        return
+      }
+
       setLoading(true)
       try {
-        const res = await fetch(`${API_URL}/api/asistencias/curso/${idCurso}?fecha=${fecha}`, { headers: getHeaders() })
+        const isHistorial = fecha < today
+        const endpoint = isHistorial
+          ? `${API_URL}/api/asistencias/curso/${idCurso}/historial?fecha=${fecha}`
+          : `${API_URL}/api/asistencias/curso/${idCurso}?fecha=${fecha}`
+        const res = await fetch(endpoint, { headers: getHeaders() })
         const data = await res.json()
         if (!res.ok) throw new Error(data.message || "Error al cargar asistencia")
+        setSoloLectura(Boolean(data.soloLectura))
         setEstudiantes(
           data.estudiantes.map((e: EstudianteAsistencia) => ({
             ...e,
-            estado_texto: e.estado ? estadoFromDb[e.estado] : "",
+            estado_texto: e.estado ? estadoFromDb[e.estado] : "presente",
           }))
         )
       } catch (error) {
+        setSoloLectura(fecha < today)
+        setEstudiantes([])
         toast.error(error instanceof Error ? error.message : "Error al cargar asistencia")
       } finally {
         setLoading(false)
       }
     }
     loadAsistencia()
-  }, [idCurso, fecha])
+  }, [idCurso, fecha, today])
 
   const stats = useMemo(() => {
     return estudiantes.reduce(
@@ -117,10 +132,21 @@ export default function AsistenciaPage() {
   }
 
   const markAllPresent = () => {
+    if (soloLectura) return
     setEstudiantes(prev => prev.map(e => ({ ...e, estado_texto: "presente", observaciones: "" })))
   }
 
   const save = async () => {
+    if (soloLectura) {
+      toast.error("Las asistencias anteriores se muestran en modo lectura")
+      return
+    }
+
+    if (fecha > today) {
+      toast.error("La fecha no puede ser futura")
+      return
+    }
+
     const pendientes = estudiantes.filter(e => !e.estado_texto)
     if (pendientes.length > 0) {
       toast.error("Todos los estudiantes deben tener un estado antes de guardar")
@@ -143,7 +169,7 @@ export default function AsistenciaPage() {
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.message || "Error al guardar asistencia")
-      toast.success("Asistencia guardada")
+      toast.success(data.message || "Asistencia guardada correctamente")
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Error al guardar asistencia")
     } finally {
@@ -159,8 +185,8 @@ export default function AsistenciaPage() {
           <p className="text-muted-foreground">Registro diario por curso y gestión activa</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={markAllPresent}>Marcar presentes</Button>
-          <Button onClick={save} disabled={saving || !idCurso} className="gap-2">
+          <Button variant="outline" onClick={markAllPresent} disabled={soloLectura}>Marcar presentes</Button>
+          <Button onClick={save} disabled={saving || !idCurso || soloLectura} className="gap-2">
             <Save className="h-4 w-4" />
             Guardar
           </Button>
@@ -181,16 +207,24 @@ export default function AsistenciaPage() {
               ))}
             </SelectContent>
           </Select>
-          <Input type="date" value={fecha} onChange={e => setFecha(e.target.value)} />
+          <Input type="date" value={fecha} max={today} onChange={e => setFecha(e.target.value)} />
         </CardContent>
       </Card>
 
-      <div className="grid gap-4 sm:grid-cols-5">
+      {soloLectura ? (
+        <Badge variant="outline" className="w-fit">
+          Consulta de asistencia anterior en modo lectura
+        </Badge>
+      ) : null}
+
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-7">
         {[
           ["Total", estudiantes.length],
           ["Presentes", stats.presente || 0],
           ["Ausentes", stats.ausente || 0],
           ["Tardanzas", stats.tardanza || 0],
+          ["Justificados", stats.justificado || 0],
+          ["Licencias", stats.licencia || 0],
           ["Pendientes", stats.pendiente || 0],
         ].map(([label, value]) => (
           <Card key={label}>
@@ -230,6 +264,7 @@ export default function AsistenciaPage() {
                       <Select
                         value={estudiante.estado_texto || ""}
                         onValueChange={(value: Estado) => updateStudent(estudiante.id_estudiante, { estado_texto: value })}
+                        disabled={soloLectura}
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="Pendiente" />
@@ -248,6 +283,7 @@ export default function AsistenciaPage() {
                         value={estudiante.observaciones || ""}
                         onChange={e => updateStudent(estudiante.id_estudiante, { observaciones: e.target.value })}
                         placeholder="Opcional"
+                        disabled={soloLectura}
                       />
                     </TableCell>
                   </TableRow>

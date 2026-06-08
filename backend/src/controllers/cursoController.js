@@ -28,7 +28,8 @@ const validarProfesorUnico = async (
 
 // ========== CU08: Crear Curso ==========
 const crearCurso = async (req, res) => {
-  const { id_grado, paralelo, id_aula, id_profesor, turno } = req.body;
+  const { id_grado, paralelo, id_aula, id_profesor, turno, descripcion } =
+    req.body;
 
   // Usar la gestión activa ya obtenida por el middleware
   const id_gestion = req.gestionActiva.id_gestion;
@@ -37,10 +38,18 @@ const crearCurso = async (req, res) => {
     await validarProfesorUnico(id_profesor, id_gestion, turno);
 
     const result = await pool.query(
-      `INSERT INTO curso (id_grado, paralelo, id_aula, id_gestion, id_profesor, turno, estado)
-             VALUES ($1, UPPER($2), $3, $4, $5, $6, true)
+      `INSERT INTO curso (id_grado, paralelo, id_aula, id_gestion, id_profesor, turno, descripcion, estado)
+             VALUES ($1, UPPER($2), $3, $4, $5, $6, NULLIF(TRIM($7), ''), true)
              RETURNING id_curso`,
-      [id_grado, paralelo, id_aula, id_gestion, id_profesor, turno],
+      [
+        id_grado,
+        paralelo,
+        id_aula,
+        id_gestion,
+        id_profesor,
+        turno,
+        descripcion || "",
+      ],
     );
 
     const cursoId = result.rows[0].id_curso;
@@ -50,6 +59,7 @@ const crearCurso = async (req, res) => {
                 c.id_curso,
                 c.paralelo,
                 c.turno,
+                c.descripcion,
                 g.id_grado,
                 g.nombre_grado,
                 n.id_nivel,
@@ -162,6 +172,7 @@ const obtenerCursos = async (req, res) => {
                 c.id_curso,
                 c.paralelo,
                 c.turno,
+                c.descripcion,
                 c.estado as curso_estado,
                 g.id_grado,
                 g.nombre_grado,
@@ -233,6 +244,7 @@ const obtenerCursoPorId = async (req, res) => {
                 c.id_curso,
                 c.paralelo,
                 c.turno,
+                c.descripcion,
                 c.estado as curso_estado,
                 g.id_grado,
                 g.nombre_grado,
@@ -280,7 +292,7 @@ const obtenerCursoPorId = async (req, res) => {
 // ========== Editar curso (FA-02) ==========
 const editarCurso = async (req, res) => {
   const { id_curso } = req.params;
-  const { id_aula, turno, id_profesor } = req.body;
+  const { id_aula, turno, id_profesor, descripcion } = req.body;
 
   // Verificar si el middleware ya validó que no hay inscripciones
   const tieneInscripciones = req.tieneInscripciones || false;
@@ -330,6 +342,11 @@ const editarCurso = async (req, res) => {
       }
     }
 
+    if (descripcion !== undefined) {
+      updates.push(`descripcion = NULLIF(TRIM($${paramIndex++}), '')`);
+      params.push(descripcion || "");
+    }
+
     if (updates.length === 0) {
       return res.status(400).json({ error: "No hay campos para actualizar" });
     }
@@ -367,7 +384,7 @@ const duplicarCurso = async (req, res) => {
   try {
     // Obtener el curso original
     const cursoOriginal = await pool.query(
-      `SELECT id_grado, id_aula, id_gestion, turno 
+      `SELECT id_grado, id_aula, id_gestion, turno, descripcion
              FROM curso 
              WHERE id_curso = $1`,
       [id_curso],
@@ -380,14 +397,15 @@ const duplicarCurso = async (req, res) => {
     const original = cursoOriginal.rows[0];
 
     const result = await pool.query(
-      `INSERT INTO curso (id_grado, paralelo, id_aula, id_gestion, id_profesor, turno, estado)
-             VALUES ($1, '', $2, $3, NULL, $4, true)
+      `INSERT INTO curso (id_grado, paralelo, id_aula, id_gestion, id_profesor, turno, descripcion, estado)
+             VALUES ($1, '', $2, $3, NULL, $4, $5, true)
              RETURNING id_curso`,
       [
         original.id_grado,
         original.id_aula,
         original.id_gestion,
         original.turno,
+        original.descripcion,
       ],
     );
 

@@ -18,6 +18,10 @@ const expedienteRoutes = require("./routes/expedienteRoutes");
 const bitacoraRoutes = require("./routes/bitacoraRoutes");
 const seguridadRoutes = require("./routes/seguridadRoutes");
 const asistenciaRoutes = require("./routes/asistenciaRoutes");
+const justificacionRoutes = require("./routes/justificacionRoutes");
+const dimensionRoutes = require("./routes/dimensionRoutes");
+const actividadRoutes = require("./routes/actividadRoutes");
+const calificacionRoutes = require("./routes/calificacionRoutes");
 const pagoRoutes = require("./routes/pagoRoutes");
 const inventarioRoutes = require("./routes/inventarioRoutes");
 
@@ -42,7 +46,11 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
-app.use(express.json());
+app.use(express.json({
+  verify: (req, _res, buf) => {
+    req.rawBody = buf.toString("utf8");
+  },
+}));
 
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
@@ -61,6 +69,10 @@ app.use("/api/expedientes", expedienteRoutes);
 app.use("/api/bitacora", bitacoraRoutes);
 app.use("/api/seguridad", seguridadRoutes);
 app.use("/api/asistencias", asistenciaRoutes);
+app.use("/api/justificaciones", justificacionRoutes);
+app.use("/api/dimensiones", dimensionRoutes);
+app.use("/api/actividades", actividadRoutes);
+app.use("/api/calificaciones", calificacionRoutes);
 app.use("/api/pagos", pagoRoutes);
 app.use("/api/inventario", inventarioRoutes);
 

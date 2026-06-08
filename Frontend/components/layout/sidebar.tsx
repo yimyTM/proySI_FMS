@@ -41,6 +41,8 @@ import {
   Lock,
   Truck,
   MessageSquare,
+  SlidersHorizontal,
+  FileCheck2,
 } from "lucide-react"
 
 interface NavItem {
@@ -86,6 +88,8 @@ const navItems: NavItem[] = [
       { title: "Tutores", href: "/dashboard/tutores", icon: UserCheck, roles: [1, 2, 4] },
       { title: "Expedientes", href: "/dashboard/expedientes", icon: FileText, roles: [1, 2, 3, 4] },
       { title: "Asistencia", href: "/dashboard/asistencia", icon: UserCheck, roles: [1, 2, 3] },
+      { title: "Justificar Inasistencia", href: "/dashboard/justificar-inasistencia", icon: FileCheck2, roles: [1, 2, 3] },
+      { title: "Dimensiones Eval.", href: "/dashboard/dimensiones-evaluacion", icon: SlidersHorizontal, roles: [1, 2] },
       { title: "Calificaciones", href: "/dashboard/calificaciones", icon: GraduationCap, roles: [1, 2, 3] },
       { title: "Notas", href: "/dashboard/notas", icon: FileText, roles: [1, 2, 3] },
     ],
@@ -94,9 +98,10 @@ const navItems: NavItem[] = [
   {
     title: "Finanzas",
     icon: DollarSign,
-    roles: [1, 2, 4],
+    roles: [1, 2, 4, 5],
     children: [
       { title: "Pagos", href: "/dashboard/pagos", icon: CreditCard, roles: [1, 2, 4] },
+      { title: "Mis Pagos", href: "/dashboard/mis-pagos", icon: CreditCard, roles: [1, 2, 4, 5] },
       { title: "Reportes", href: "/dashboard/reportes", icon: BarChart3, roles: [1, 2, 4] },
     ],
   },

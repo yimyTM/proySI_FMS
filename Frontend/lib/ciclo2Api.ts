@@ -292,6 +292,7 @@ export interface CursoDetalle {
   id_curso: number;
   paralelo: string;
   turno: string;
+  descripcion?: string | null;
   nombre_grado: string;
   nombre_nivel: string;
   numero_aula?: string; // backend usa numero_aula
@@ -341,6 +342,7 @@ export interface CursoPayload {
   turno: string;
   id_aula: number;
   id_profesor: number;
+  descripcion?: string;
 }
 
 export interface MateriaAsignada {

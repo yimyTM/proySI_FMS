@@ -381,6 +381,7 @@ CREATE TABLE public.curso (
     id_gestion integer NOT NULL,
     id_profesor integer NOT NULL,
     turno character varying(20) NOT NULL,
+    descripcion text,
     estado boolean DEFAULT true NOT NULL,
     CONSTRAINT curso_turno_check CHECK (((turno)::text = ANY (ARRAY[('Mañana'::character varying)::text, ('Tarde'::character varying)::text])))
 );

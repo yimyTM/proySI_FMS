@@ -894,6 +894,7 @@ CREATE TABLE public.curso (
     id_gestion integer NOT NULL,
     id_profesor integer NOT NULL,
     turno character varying(20) NOT NULL,
+    descripcion text,
     estado boolean DEFAULT true NOT NULL,
     CONSTRAINT curso_turno_check CHECK (((turno)::text = ANY (ARRAY[('Mañana'::character varying)::text, ('Tarde'::character varying)::text])))
 );
@@ -5163,4 +5164,3 @@ ALTER TABLE ONLY public.usuario
 --
 
 \unrestrict d5za3Ym3xUPfARZRXSnZgpoT19caZLQ6Orx3WJvx5hjqqtb5m7jd8OYkeZel0cC
-
