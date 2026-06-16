@@ -84,8 +84,12 @@ export default function LoginPage() {
       <div className="w-full max-w-md">
         {/* Logo y título */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 mb-4">
-            <GraduationCap className="h-8 w-8 text-primary" />
+          <div className="inline-flex items-center justify-center w-22 h-22 rounded-full bg-primary/10 mb-4">
+            <img
+              src="/logoBuho.webp"
+              alt="Logo"
+              className="h-22 w-22 rounded-full"
+            />
           </div>
           <h1 className="font-sans text-2xl font-bold text-foreground">
             EduGestión
