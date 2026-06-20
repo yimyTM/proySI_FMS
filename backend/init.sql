@@ -8,6 +8,29 @@ SET check_function_bodies = false;
 SET xmloption = content;
 SET client_min_messages = warning;
 SET row_security = off;
+
+CREATE OR REPLACE FUNCTION public.fn_validar_entrega_autorizada()
+RETURNS TRIGGER AS $$
+DECLARE
+    v_autorizado BOOLEAN;
+BEGIN
+    SELECT autorizado_recoger INTO v_autorizado
+    FROM public.tutor_estudiante
+    WHERE id_estudiante = NEW.id_estudiante
+      AND id_tutor = NEW.id_tutor;
+
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'El tutor con ID % no está vinculado al estudiante con ID %', NEW.id_tutor, NEW.id_estudiante;
+    END IF;
+
+    IF v_autorizado IS FALSE OR v_autorizado IS NULL THEN
+        RAISE EXCEPTION 'El tutor no está autorizado para recoger al estudiante (autorizado_recoger = false)';
+    END IF;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
 CREATE FUNCTION public.fn_actualizar_deuda_al_pagar() RETURNS trigger
     LANGUAGE plpgsql
     AS $$
@@ -149,27 +172,6 @@ BEGIN
     SET estado = 'mora'
     WHERE estado = 'pendiente'
       AND fecha_generacion < (CURRENT_DATE - INTERVAL '30 days');
-    RETURN NEW;
-END;
-$$;
-CREATE FUNCTION public.fn_validar_entrega_autorizada() RETURNS trigger
-    LANGUAGE plpgsql
-    AS $$
-DECLARE
-    v_autorizado BOOLEAN;
-BEGIN
-    SELECT autorizado_recoger
-    INTO v_autorizado
-    FROM tutor_estudiante
-    WHERE id_tutor = NEW.id_tutor
-      AND id_estudiante = NEW.id_estudiante;
-    IF v_autorizado IS NULL THEN
-        NEW.observaciones := COALESCE(NEW.observaciones, '') ||
-            ' [ALERTA: Tutor sin vínculo registrado]';
-    ELSIF v_autorizado = FALSE THEN
-        NEW.observaciones := COALESCE(NEW.observaciones, '') ||
-            ' [ALERTA: Tutor no autorizado]';
-    END IF;
     RETURN NEW;
 END;
 $$;

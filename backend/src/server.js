@@ -24,6 +24,8 @@ const justificacionRoutes = require("./routes/justificacionRoutes");
 const inventarioRoutes = require("./routes/inventarioRoutes");
 const portalRoutes = require("./routes/portalRoutes");
 const estudianteMeRoutes = require("./routes/estudianteMeRoutes");
+const entregaRoutes = require("./routes/entregaRoutes");
+const errorHandler = require("./middlewares/errorHandler");
 
 const app = express();
 
@@ -65,12 +67,16 @@ app.use("/api/expedientes", expedienteRoutes);
 app.use("/api/bitacora", bitacoraRoutes);
 app.use("/api/seguridad", seguridadRoutes);
 app.use("/api/asistencias", asistenciaRoutes);
+app.use("/api/entregas", entregaRoutes);
 app.use("/api/pagos/portal", portalRoutes); // antes de /api/pagos para evitar ambigüedad
 app.use("/api/pagos", pagoRoutes);
 app.use("/api/dimensiones", dimensionRoutes);
 app.use("/api/justificaciones", justificacionRoutes);
 app.use("/api/inventario", inventarioRoutes);
 app.use("/api/me", estudianteMeRoutes);
+//aqui añaden si quieren sus controllers, para ver si es que funcionan bien
+app.use(errorHandler);
+// aca :v
 
 const PORT = Number(process.env.PORT) || 5000;
 

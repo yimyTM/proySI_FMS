@@ -39,7 +39,6 @@ import {
   DoorOpen,
   CalendarCheck,
   Lock,
-  Truck,
   MessageSquare,
 } from "lucide-react";
 
@@ -99,7 +98,7 @@ const navItems: NavItem[] = [
   {
     title: "Estudiantes",
     icon: Users,
-    roles: [1, 2, 3, 4],
+    roles: [1, 2, 3, 4, 12],
     children: [
       {
         title: "Gestión Académica",
@@ -173,6 +172,12 @@ const navItems: NavItem[] = [
         icon: FileText,
         roles: [1, 2, 3],
       },
+      {
+        title: "Entregas",
+        href: "/dashboard/entregas",
+        icon: ArrowRightLeft,
+        roles: [1, 2, 3, 4, 12],
+      },
     ],
   },
   // 3. FINANZAS
@@ -209,21 +214,7 @@ const navItems: NavItem[] = [
       },
     ],
   },
-  // 5. ENTREGA
-  {
-    title: "Entrega",
-    icon: Truck,
-    roles: [1, 2, 4],
-    children: [
-      {
-        title: "Entregas",
-        href: "/dashboard/entregas",
-        icon: ArrowRightLeft,
-        roles: [1, 2, 4],
-      },
-    ],
-  },
-  // 6. COMUNICACIÓN
+  // 5. COMUNICACIÓN
   {
     title: "Comunicación",
     icon: MessageSquare,
