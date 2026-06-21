@@ -309,3 +309,147 @@ export interface AvisoPublicado {
   notificaciones_fallidas: number;
   fecha_envio: string;
 }
+
+// ── CU27 – Reportes ────────────────────────────────────────────────────────────
+// Montado en /api/reportes — acceso: SuperUsuario, Director, Administrativo
+
+// Descarga un archivo (PDF/Excel) desde un endpoint protegido.
+// Lanza ApiError con el mensaje del backend si la respuesta no es OK (ej. 404 sin datos).
+async function descargarArchivo(path: string, fallbackName: string): Promise<void> {
+  const res = await fetch(`${API_URL}${path}`, {
+    headers: { Authorization: `Bearer ${getToken()}` },
+  });
+  if (!res.ok) {
+    let mensaje = `Error ${res.status}`;
+    try {
+      const data = await res.json();
+      mensaje = data.message || data.error || mensaje;
+    } catch {
+      /* respuesta no-JSON */
+    }
+    throw new ApiError(mensaje, res.status);
+  }
+  const blob = await res.blob();
+  const disposition = res.headers.get("Content-Disposition") || "";
+  const match = disposition.match(/filename=([^;]+)/);
+  const nombre = match ? match[1].trim().replace(/"/g, "") : fallbackName;
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = nombre;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  window.URL.revokeObjectURL(url);
+}
+
+export interface ReportesFiltros {
+  gestiones: { id_gestion: number; anio: number; estado: string }[];
+  niveles: { id_nivel: number; nombre_nivel: string }[];
+  cursos: {
+    id_curso: number;
+    id_gestion: number;
+    id_nivel: number;
+    label: string;
+  }[];
+  materias: { id_materia: number; nombre_materia: string }[];
+  categorias: string[];
+  dimensiones: string[];
+  supervisores: { id_usuario: number; label: string }[];
+}
+
+export interface ReporteReciente {
+  descripcion: string;
+  tabla_afectada: string | null;
+  fecha_hora: string;
+  usuario: string;
+}
+
+function buildQs(params: Record<string, string | undefined>): string {
+  const filtered = Object.entries(params).filter(
+    ([, v]) => v !== undefined && v !== null && v !== "",
+  ) as [string, string][];
+  return filtered.length
+    ? "?" + new URLSearchParams(filtered).toString()
+    : "";
+}
+
+export const reportesApi = {
+  getFiltros: () => get<ReportesFiltros>("/api/reportes/filtros"),
+
+  getRecientes: () =>
+    get<{ recientes: ReporteReciente[] }>("/api/reportes/recientes").then(
+      (r) => r.recientes,
+    ),
+
+  descargar: (
+    reporte: string,
+    params: Record<string, string | undefined>,
+  ) =>
+    descargarArchivo(
+      `/api/reportes/${reporte}${buildQs(params)}`,
+      `reporte_${reporte}`,
+    ),
+};
+
+// ── CU28 – Chatbot ─────────────────────────────────────────────────────────────
+// Montado en /api/chatbot — acceso: SuperUsuario, Director, Administrativo
+
+export type ChatbotTipo =
+  | "ok"
+  | "vacio"
+  | "fuera_alcance"
+  | "bloqueada"
+  | "error";
+
+export interface ChatbotRespuesta {
+  tipo: ChatbotTipo;
+  titulo?: string;
+  respuesta?: string;
+  message?: string;
+  es_listado?: boolean;
+  columnas?: string[];
+  filas?: Record<string, unknown>[];
+}
+
+export const chatbotApi = {
+  consultar: (pregunta: string) =>
+    post<ChatbotRespuesta>("/api/chatbot/consultar", { pregunta }),
+
+  exportar: (
+    data: {
+      titulo: string;
+      columnas: string[];
+      filas: Record<string, unknown>[];
+      formato: "pdf" | "csv";
+    },
+  ) =>
+    fetch(`${API_URL}/api/chatbot/exportar`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${getToken()}`,
+      },
+      body: JSON.stringify(data),
+    }).then(async (res) => {
+      if (!res.ok) {
+        let mensaje = `Error ${res.status}`;
+        try {
+          const j = await res.json();
+          mensaje = j.message || j.error || mensaje;
+        } catch {
+          /* no-JSON */
+        }
+        throw new ApiError(mensaje, res.status);
+      }
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `consulta.${data.formato}`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    }),
+};

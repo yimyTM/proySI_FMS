@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Sidebar } from "./sidebar";
 import { Header } from "./header";
+import { ChatbotWidget } from "@/components/chatbot/chatbot-widget";
 import { cn } from "@/lib/utils";
 
 interface DashboardLayoutProps {
@@ -54,6 +55,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
       >
         <div className="animate-fade-in p-3 sm:p-4 lg:p-6">{children}</div>
       </main>
+      <ChatbotWidget />
     </div>
   );
 }

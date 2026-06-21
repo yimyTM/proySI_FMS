@@ -36,6 +36,11 @@ backend/.pgdata/
 *.backup
 *.sql.gz
 
+#others
+/.claude
+/diagram/
+CU27y28.md
+
 # Coverage
 coverage/
 **/coverage/

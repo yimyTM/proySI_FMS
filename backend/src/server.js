@@ -28,6 +28,8 @@ const entregaRoutes = require("./routes/entregaRoutes");
 const errorHandler = require("./middlewares/errorHandler");
 const estadoCuentaRoutes = require("./routes/estadoCuentaRoutes");
 const avisoRoutes = require("./routes/avisoRoutes");
+const reporteRoutes = require("./routes/reporteRoutes");
+const chatbotRoutes = require("./routes/chatbotRoutes");
 
 const app = express();
 
@@ -78,6 +80,8 @@ app.use("/api/inventario", inventarioRoutes);
 app.use("/api/me", estudianteMeRoutes);
 app.use("/api/estado-cuenta", estadoCuentaRoutes);
 app.use("/api/avisos", avisoRoutes);
+app.use("/api/reportes", reporteRoutes);
+app.use("/api/chatbot", chatbotRoutes);
 //aqui añaden si quieren sus controllers, para ver si es que funcionan bien
 app.use(errorHandler);
 // aca :v
