@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -18,7 +19,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import {
   Select,
@@ -34,87 +34,182 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   Plus,
   Megaphone,
-  Bell,
   Calendar,
   Users,
-  Clock,
-  Eye,
   Send,
-  MessageSquare,
+  School,
+  User,
+  Globe,
 } from "lucide-react";
+import {
+  avisosApi,
+  entregasApi,
+  ApiError,
+  Aviso,
+  AvisoEstudiante,
+  DestinatarioTipo,
+} from "@/lib/Ciclo4api";
+import { cursosApi } from "@/lib/ciclo2Api";
 
-interface Notice {
-  id: number;
-  title: string;
-  content: string;
-  date: string;
-  author: string;
-  target: string;
-  status: "sent" | "scheduled" | "draft";
-  views: number;
-}
+// Roles que pueden publicar (backend: Director=2, Profesor=3)
+const ROLES_PUBLICAR = [2, 3];
 
-const notices: Notice[] = [
-  {
-    id: 1,
-    title: "Reunión de Padres de Familia",
-    content:
-      "Se convoca a todos los padres de familia a la reunión trimestral que se llevará a cabo el día 15 de abril a las 18:00 horas en el salón de actos.",
-    date: "2025-04-10",
-    author: "Dirección",
-    target: "Todos los niveles",
-    status: "sent",
-    views: 185,
+const tipoConfig: Record<
+  DestinatarioTipo,
+  { label: string; icon: typeof Globe; color: string }
+> = {
+  todos: {
+    label: "Todos los estudiantes",
+    icon: Globe,
+    color: "bg-primary/10 text-primary",
   },
-  {
-    id: 2,
-    title: "Feriado - Día del Trabajador",
-    content:
-      "Se comunica que el día 1 de mayo no habrá clases por ser feriado nacional. Las actividades se reanudan el 2 de mayo.",
-    date: "2025-04-08",
-    author: "Dirección",
-    target: "Todos los niveles",
-    status: "sent",
-    views: 220,
+  por_curso: {
+    label: "Curso específico",
+    icon: School,
+    color: "bg-info/10 text-info",
   },
-  {
-    id: 3,
-    title: "Festival de Primavera",
-    content:
-      "Invitamos a toda la comunidad educativa al Festival de Primavera que se realizará el 21 de septiembre. Los estudiantes participarán en diversas actividades.",
-    date: "2025-04-05",
-    author: "Coordinación",
-    target: "Kinder y Pre-Kinder",
-    status: "scheduled",
-    views: 0,
+  individual: {
+    label: "Estudiante específico",
+    icon: User,
+    color: "bg-success/10 text-success",
   },
-  {
-    id: 4,
-    title: "Recordatorio de pagos",
-    content:
-      "Se recuerda a los padres de familia que la fecha límite para el pago de mensualidades es el día 10 de cada mes.",
-    date: "2025-04-01",
-    author: "Administración",
-    target: "Todos los niveles",
-    status: "sent",
-    views: 198,
-  },
-];
-
-const statusConfig = {
-  sent: { label: "Enviado", color: "bg-success/10 text-success" },
-  scheduled: {
-    label: "Programado",
-    color: "bg-warning/10 text-warning-foreground",
-  },
-  draft: { label: "Borrador", color: "bg-muted text-muted-foreground" },
 };
 
 export default function ComunicacionPage() {
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [avisos, setAvisos] = useState<Aviso[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [role, setRole] = useState<number | null>(null);
 
-  const sentNotices = notices.filter((n) => n.status === "sent");
-  const totalViews = sentNotices.reduce((acc, n) => acc + n.views, 0);
+  // Formulario "Nuevo aviso"
+  const [open, setOpen] = useState(false);
+  const [titulo, setTitulo] = useState("");
+  const [contenido, setContenido] = useState("");
+  const [tipo, setTipo] = useState<DestinatarioTipo>("todos");
+  const [cursoId, setCursoId] = useState("");
+  const [estudianteId, setEstudianteId] = useState("");
+  const [publicando, setPublicando] = useState(false);
+
+  // Catálogos para los selectores de destinatario
+  const [cursos, setCursos] = useState<{ id_curso: number; label: string }[]>(
+    [],
+  );
+  const [estudiantes, setEstudiantes] = useState<AvisoEstudiante[]>([]);
+
+  const isProfesor = role === 3;
+  const canPublish = role !== null && ROLES_PUBLICAR.includes(role);
+
+  // ── Carga inicial ─────────────────────────────────────────────────────────────
+
+  const cargarAvisos = async () => {
+    setLoading(true);
+    try {
+      setAvisos(await avisosApi.listar());
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Error al cargar avisos",
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    cargarAvisos();
+    const stored = localStorage.getItem("userRole");
+    const r = stored ? parseInt(stored, 10) : null;
+    setRole(r);
+    if (r === 3) setTipo("por_curso"); // Profesor no puede usar "todos"
+  }, []);
+
+  // Cargar catálogos según el tipo elegido (una sola vez cada uno).
+  // El Profesor solo ve sus cursos; el Director ve todos.
+  useEffect(() => {
+    const cargarCursos = async () => {
+      try {
+        const list = isProfesor
+          ? await entregasApi.listarMisCursos()
+          : await cursosApi.getAll();
+        setCursos(
+          (
+            list as Array<{
+              id_curso: number;
+              nombre_grado: string;
+              paralelo: string;
+              turno: string;
+            }>
+          ).map((c) => ({
+            id_curso: c.id_curso,
+            label: `${c.nombre_grado} "${c.paralelo}" - ${c.turno}`,
+          })),
+        );
+      } catch {
+        toast.error("Error al cargar cursos");
+      }
+    };
+
+    if (tipo === "por_curso" && cursos.length === 0) cargarCursos();
+    if (tipo === "individual" && estudiantes.length === 0) {
+      avisosApi
+        .listarMisEstudiantes()
+        .then(setEstudiantes)
+        .catch(() => toast.error("Error al cargar estudiantes"));
+    }
+  }, [tipo, cursos.length, estudiantes.length, isProfesor]);
+
+  // ── Publicar aviso ──────────────────────────────────────────────────────────────
+
+  const resetForm = () => {
+    setTitulo("");
+    setContenido("");
+    setTipo("todos");
+    setCursoId("");
+    setEstudianteId("");
+  };
+
+  const publicar = async () => {
+    if (!titulo.trim() || !contenido.trim()) {
+      toast.error("Complete el título y el contenido");
+      return;
+    }
+    if (tipo === "por_curso" && !cursoId) {
+      toast.error("Seleccione un curso");
+      return;
+    }
+    if (tipo === "individual" && !estudianteId) {
+      toast.error("Seleccione un estudiante");
+      return;
+    }
+
+    setPublicando(true);
+    try {
+      const res = await avisosApi.publicar({
+        titulo: titulo.trim(),
+        contenido: contenido.trim(),
+        destinatario_tipo: tipo,
+        id_curso_destino:
+          tipo === "por_curso" ? Number(cursoId) : undefined,
+        id_estudiante_destino:
+          tipo === "individual" ? Number(estudianteId) : undefined,
+      });
+      toast.success(res.mensaje || "Aviso publicado correctamente", {
+        description: `${res.aviso.destinatarios} destinatario(s) · ${res.aviso.notificaciones_creadas} notificación(es) generada(s)`,
+      });
+      setOpen(false);
+      resetForm();
+      cargarAvisos();
+    } catch (error) {
+      toast.error(
+        error instanceof ApiError
+          ? error.message
+          : "Error al publicar el aviso",
+      );
+    } finally {
+      setPublicando(false);
+    }
+  };
+
+  const contarPorTipo = (t: DestinatarioTipo) =>
+    avisos.filter((a) => a.destinatario_tipo === t).length;
 
   return (
     <div className="space-y-6">
@@ -123,69 +218,15 @@ export default function ComunicacionPage() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Comunicación</h1>
           <p className="text-muted-foreground">
-            Gestión de avisos y notificaciones para padres de familia
+            Avisos y notificaciones para estudiantes y tutores
           </p>
         </div>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button className="gap-2">
-              <Plus className="h-4 w-4" />
-              Nuevo Aviso
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[500px]">
-            <DialogHeader>
-              <DialogTitle>Crear Nuevo Aviso</DialogTitle>
-              <DialogDescription>
-                Complete la información del aviso que será enviado a los padres
-                de familia.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label htmlFor="title">Título del aviso</Label>
-                <Input id="title" placeholder="Ej: Reunión de padres" />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="content">Contenido</Label>
-                <Textarea
-                  id="content"
-                  placeholder="Escriba el contenido del aviso..."
-                  rows={4}
-                />
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Dirigido a</Label>
-                  <Select defaultValue="all">
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Todos los niveles</SelectItem>
-                      <SelectItem value="prekinder">Pre-Kinder</SelectItem>
-                      <SelectItem value="kinder">Kinder</SelectItem>
-                      <SelectItem value="primaria">Primaria</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>Fecha de envío</Label>
-                  <Input type="date" />
-                </div>
-              </div>
-            </div>
-            <DialogFooter className="gap-2">
-              <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
-                Guardar borrador
-              </Button>
-              <Button className="gap-2">
-                <Send className="h-4 w-4" />
-                Enviar ahora
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+        {canPublish && (
+          <Button className="gap-2" onClick={() => setOpen(true)}>
+            <Plus className="h-4 w-4" />
+            Nuevo Aviso
+          </Button>
+        )}
       </div>
 
       {/* Stats */}
@@ -194,8 +235,8 @@ export default function ComunicacionPage() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Avisos Enviados</p>
-                <p className="text-2xl font-bold">{sentNotices.length}</p>
+                <p className="text-sm text-muted-foreground">Total Avisos</p>
+                <p className="text-2xl font-bold">{avisos.length}</p>
               </div>
               <Megaphone className="h-8 w-8 text-primary/50" />
             </div>
@@ -205,10 +246,10 @@ export default function ComunicacionPage() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Vistas Totales</p>
-                <p className="text-2xl font-bold">{totalViews}</p>
+                <p className="text-sm text-muted-foreground">Generales</p>
+                <p className="text-2xl font-bold">{contarPorTipo("todos")}</p>
               </div>
-              <Eye className="h-8 w-8 text-info/50" />
+              <Globe className="h-8 w-8 text-primary/50" />
             </div>
           </CardContent>
         </Card>
@@ -216,12 +257,12 @@ export default function ComunicacionPage() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Programados</p>
-                <p className="text-2xl font-bold text-warning-foreground">
-                  {notices.filter((n) => n.status === "scheduled").length}
+                <p className="text-sm text-muted-foreground">Por Curso</p>
+                <p className="text-2xl font-bold">
+                  {contarPorTipo("por_curso")}
                 </p>
               </div>
-              <Clock className="h-8 w-8 text-warning/50" />
+              <School className="h-8 w-8 text-info/50" />
             </div>
           </CardContent>
         </Card>
@@ -229,149 +270,195 @@ export default function ComunicacionPage() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Tutores</p>
-                <p className="text-2xl font-bold">215</p>
+                <p className="text-sm text-muted-foreground">Individuales</p>
+                <p className="text-2xl font-bold">
+                  {contarPorTipo("individual")}
+                </p>
               </div>
-              <Users className="h-8 w-8 text-success/50" />
+              <User className="h-8 w-8 text-success/50" />
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Notices List */}
-      <div className="grid gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-2">
-          <Card>
-            <CardHeader>
-              <CardTitle>Avisos Publicados</CardTitle>
-              <CardDescription>
-                Historial de comunicados enviados
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ScrollArea className="h-[500px] pr-4">
-                <div className="space-y-4">
-                  {notices.map((notice) => {
-                    const config = statusConfig[notice.status];
-                    return (
-                      <Card key={notice.id} className="bg-muted/30">
-                        <CardContent className="p-4">
-                          <div className="flex items-start justify-between gap-4">
-                            <div className="space-y-2 flex-1">
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <h3 className="font-semibold">
-                                  {notice.title}
-                                </h3>
-                                <Badge
-                                  variant="secondary"
-                                  className={config.color}
-                                >
-                                  {config.label}
-                                </Badge>
-                              </div>
-                              <p className="text-sm text-muted-foreground line-clamp-2">
-                                {notice.content}
-                              </p>
-                              <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                                <span className="flex items-center gap-1">
-                                  <Calendar className="h-3 w-3" />
-                                  {new Date(notice.date).toLocaleDateString(
-                                    "es-BO",
-                                  )}
-                                </span>
-                                <span className="flex items-center gap-1">
-                                  <Users className="h-3 w-3" />
-                                  {notice.target}
-                                </span>
-                                {notice.status === "sent" && (
-                                  <span className="flex items-center gap-1">
-                                    <Eye className="h-3 w-3" />
-                                    {notice.views} vistas
-                                  </span>
-                                )}
-                              </div>
+      {/* Lista de avisos */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Avisos Publicados</CardTitle>
+          <CardDescription>
+            Historial de comunicados registrados
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {loading ? (
+            <p className="py-12 text-center text-sm text-muted-foreground">
+              Cargando avisos...
+            </p>
+          ) : avisos.length === 0 ? (
+            <p className="py-12 text-center text-sm text-muted-foreground">
+              Aún no hay avisos publicados.
+            </p>
+          ) : (
+            <ScrollArea className="h-[500px] pr-4">
+              <div className="space-y-4">
+                {avisos.map((aviso) => {
+                  const cfg = tipoConfig[aviso.destinatario_tipo];
+                  const TipoIcon = cfg.icon;
+                  return (
+                    <Card key={aviso.id_aviso} className="bg-muted/30">
+                      <CardContent className="p-4">
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex-1 space-y-2">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <h3 className="font-semibold">{aviso.titulo}</h3>
+                              <Badge
+                                variant="secondary"
+                                className={`gap-1 ${cfg.color}`}
+                              >
+                                <TipoIcon className="h-3 w-3" />
+                                {cfg.label}
+                              </Badge>
                             </div>
-                            <Avatar className="h-10 w-10">
-                              <AvatarFallback className="bg-primary/10 text-primary text-xs">
-                                {notice.author.slice(0, 2).toUpperCase()}
-                              </AvatarFallback>
-                            </Avatar>
+                            <p className="line-clamp-2 text-sm text-muted-foreground">
+                              {aviso.contenido}
+                            </p>
+                            <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
+                              <span className="flex items-center gap-1">
+                                <Calendar className="h-3 w-3" />
+                                {new Date(aviso.fecha_envio).toLocaleString(
+                                  "es-BO",
+                                  {
+                                    day: "2-digit",
+                                    month: "2-digit",
+                                    year: "numeric",
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                  },
+                                )}
+                              </span>
+                              <span className="flex items-center gap-1">
+                                <Users className="h-3 w-3" />
+                                {aviso.publicado_por}
+                              </span>
+                            </div>
                           </div>
-                        </CardContent>
-                      </Card>
-                    );
-                  })}
-                </div>
-              </ScrollArea>
-            </CardContent>
-          </Card>
-        </div>
-
-        <div className="space-y-6">
-          {/* Quick Send */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-base">
-                <Bell className="h-5 w-5" />
-                Envío Rápido
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label>Mensaje rápido</Label>
-                <Textarea placeholder="Escriba un mensaje breve..." rows={3} />
+                          <Avatar className="h-10 w-10">
+                            <AvatarFallback className="bg-primary/10 text-primary text-xs">
+                              {aviso.publicado_por.slice(0, 2).toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
               </div>
-              <Select defaultValue="all">
+            </ScrollArea>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Diálogo Nuevo Aviso */}
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="sm:max-w-[520px]">
+          <DialogHeader>
+            <DialogTitle>Nuevo Aviso</DialogTitle>
+            <DialogDescription>
+              Complete el comunicado y elija a quién va dirigido.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label htmlFor="titulo">Título</Label>
+              <Input
+                id="titulo"
+                placeholder="Ej: Reunión de padres"
+                value={titulo}
+                onChange={(e) => setTitulo(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="contenido">Contenido</Label>
+              <Textarea
+                id="contenido"
+                placeholder="Escriba el contenido del aviso..."
+                rows={4}
+                value={contenido}
+                onChange={(e) => setContenido(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Tipo de destinatario</Label>
+              <Select
+                value={tipo}
+                onValueChange={(v) => setTipo(v as DestinatarioTipo)}
+              >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Todos los niveles</SelectItem>
-                  <SelectItem value="prekinder">Pre-Kinder</SelectItem>
-                  <SelectItem value="kinder">Kinder</SelectItem>
-                  <SelectItem value="primaria">Primaria</SelectItem>
+                  {!isProfesor && (
+                    <SelectItem value="todos">Todos los estudiantes</SelectItem>
+                  )}
+                  <SelectItem value="por_curso">Curso específico</SelectItem>
+                  <SelectItem value="individual">
+                    Estudiante específico
+                  </SelectItem>
                 </SelectContent>
               </Select>
-              <Button className="w-full gap-2">
-                <Send className="h-4 w-4" />
-                Enviar Notificación
-              </Button>
-            </CardContent>
-          </Card>
+            </div>
 
-          {/* Recent Activity */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-base">
-                <MessageSquare className="h-5 w-5" />
-                Actividad Reciente
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {[
-                  { action: "Aviso enviado", time: "Hace 2 horas" },
-                  {
-                    action: "Notificación vista por 45 tutores",
-                    time: "Hace 3 horas",
-                  },
-                  { action: "Nuevo borrador guardado", time: "Hace 5 horas" },
-                ].map((item, idx) => (
-                  <div
-                    key={idx}
-                    className="flex items-center justify-between text-sm"
-                  >
-                    <span>{item.action}</span>
-                    <span className="text-muted-foreground text-xs">
-                      {item.time}
-                    </span>
-                  </div>
-                ))}
+            {tipo === "por_curso" && (
+              <div className="space-y-2">
+                <Label>Curso</Label>
+                <Select value={cursoId} onValueChange={setCursoId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Seleccionar curso" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {cursos.map((c) => (
+                      <SelectItem key={c.id_curso} value={String(c.id_curso)}>
+                        {c.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
+            )}
+
+            {tipo === "individual" && (
+              <div className="space-y-2">
+                <Label>Estudiante</Label>
+                <Select value={estudianteId} onValueChange={setEstudianteId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Seleccionar estudiante" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {estudiantes.map((e) => (
+                      <SelectItem
+                        key={e.id_estudiante}
+                        value={String(e.id_estudiante)}
+                      >
+                        {e.apellido}, {e.nombre}
+                        {e.ci ? ` · CI ${e.ci}` : ""}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOpen(false)}>
+              Cancelar
+            </Button>
+            <Button className="gap-2" onClick={publicar} disabled={publicando}>
+              <Send className="h-4 w-4" />
+              {publicando ? "Publicando..." : "Publicar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

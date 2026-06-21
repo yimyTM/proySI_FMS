@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
-import { GraduationCap, User, BookOpen, CreditCard, LogOut } from "lucide-react";
+import { GraduationCap, User, BookOpen, CreditCard, Megaphone, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { API_URL } from "@/lib/api";
 
@@ -11,6 +11,7 @@ const NAV = [
   { href: "/estudiante/mis-datos",          label: "Mis Datos",          icon: User },
   { href: "/estudiante/mis-calificaciones", label: "Calificaciones",     icon: BookOpen },
   { href: "/estudiante/mis-pagos",          label: "Pagos",              icon: CreditCard },
+  { href: "/estudiante/mis-avisos",         label: "Avisos",             icon: Megaphone },
 ];
 
 export default function EstudianteLayout({ children }: { children: React.ReactNode }) {

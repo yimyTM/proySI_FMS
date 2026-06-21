@@ -862,6 +862,15 @@ ALTER TABLE ONLY public.rol ALTER COLUMN id_rol SET DEFAULT nextval('public.rol_
 ALTER TABLE ONLY public.tutor ALTER COLUMN id_tutor SET DEFAULT nextval('public.tutor_id_tutor_seq'::regclass);
 ALTER TABLE ONLY public.tutor_estudiante ALTER COLUMN id_tutor_estudiante SET DEFAULT nextval('public.tutor_estudiante_id_tutor_estudiante_seq'::regclass);
 ALTER TABLE ONLY public.usuario ALTER COLUMN id_usuario SET DEFAULT nextval('public.usuario_id_usuario_seq'::regclass);
+ALTER TABLE public.aviso ADD COLUMN id_estudiante_destino INTEGER NULL; -- NUEVO
+ALTER TABLE public.notificacion DROP CONSTRAINT notificacion_canal_check; -- nuevo
+ALTER TABLE public.notificacion ADD CONSTRAINT notificacion_canal_check --nuevo
+  CHECK (canal IN ('whatsapp','email','sms','panel')); -- nuevo
+ALTER TABLE public.bitacora DROP CONSTRAINT bitacora_accion_check;
+ALTER TABLE public.bitacora ADD CONSTRAINT bitacora_accion_check
+  CHECK (accion IN ('LOGIN','LOGOUT','INSERT','UPDATE','DELETE','APROBACION',
+                    'VALIDACION','EXPORTACION','CONSULTA','SISTEMA','ERROR','ADVERTENCIA'));
+
 INSERT INTO public.actividad_evaluacion (id_actividad, id_curso_materia, id_dimension_eval, trimestre, nombre_actividad, fecha_actividad) VALUES (1, 5, 2, 1, 'Practica demo de lectura', '2026-04-15');
 INSERT INTO public.actividad_evaluacion (id_actividad, id_curso_materia, id_dimension_eval, trimestre, nombre_actividad, fecha_actividad) VALUES (2, 30, 1, 1, 'Valoración actitudinal - Valores', '2026-04-30');
 INSERT INTO public.actividad_evaluacion (id_actividad, id_curso_materia, id_dimension_eval, trimestre, nombre_actividad, fecha_actividad) VALUES (3, 30, 2, 1, 'Evaluación valores comunitarios', '2026-03-20');
@@ -2476,6 +2485,8 @@ ALTER TABLE ONLY public.usuario
     ADD CONSTRAINT usuario_pkey PRIMARY KEY (id_usuario);
 ALTER TABLE ONLY public.usuario
     ADD CONSTRAINT usuario_username_key UNIQUE (username);
+ALTER TABLE public.aviso ADD CONSTRAINT fk_aviso_estudiante 
+    FOREIGN KEY (id_estudiante_destino) REFERENCES public.estudiante(id_estudiante) ON DELETE SET NULL;
 CREATE INDEX idx_asistencia_estudiante ON public.asistencia USING btree (id_estudiante);
 CREATE INDEX idx_asistencia_fecha ON public.asistencia USING btree (fecha);
 CREATE INDEX idx_bitacora_fecha ON public.bitacora USING btree (fecha_hora);
@@ -2618,6 +2629,10 @@ ALTER TABLE ONLY public.usuario
 -- Columnas y FK de estudiante (idempotentes)
 ALTER TABLE public.estudiante ADD COLUMN IF NOT EXISTS id_usuario INTEGER;
 ALTER TABLE public.estudiante ADD COLUMN IF NOT EXISTS rude CHARACTER VARYING(16);
+
+CREATE INDEX IF NOT EXISTS idx_aviso_estudiante_destino ON aviso(id_estudiante_destino);
+CREATE INDEX IF NOT EXISTS idx_aviso_destinatario_estado ON aviso(destinatario_tipo, estado);
+CREATE INDEX IF NOT EXISTS idx_aviso_fecha_envio ON aviso(fecha_envio DESC);
 
 DO $$ BEGIN
     IF NOT EXISTS (

@@ -40,6 +40,7 @@ import {
   CalendarCheck,
   Lock,
   MessageSquare,
+  Receipt,
 } from "lucide-react";
 
 interface NavItem {
@@ -180,9 +181,9 @@ const navItems: NavItem[] = [
       },
     ],
   },
-  // 3. FINANZAS
+  // 3. Pagos
   {
-    title: "Finanzas",
+    title: "Pagos",
     icon: DollarSign,
     roles: [1, 2, 4],
     children: [
@@ -190,6 +191,12 @@ const navItems: NavItem[] = [
         title: "Pagos",
         href: "/dashboard/pagos",
         icon: CreditCard,
+        roles: [1, 2, 4],
+      },
+      {
+        title: "Estados de Cuenta",
+        href: "/dashboard/estado-cuenta",
+        icon: Receipt,
         roles: [1, 2, 4],
       },
       {

@@ -145,3 +145,167 @@ export interface EntregaListItem {
   paralelo: string | null;
   turno: string | null;
 }
+
+// ── Estado de cuenta (Ciclo 4) ────────────────────────────────────────────────
+// Montado en /api/estado-cuenta — acceso: Admin, Director, Secretaria (roles 1,2,4)
+
+export const estadoCuentaApi = {
+  // GET /api/estado-cuenta/estudiantes?q=
+  buscarEstudiantes: (q: string) =>
+    get<{ estudiantes: EstadoCuentaBusqueda[] }>(
+      `/api/estado-cuenta/estudiantes?q=${encodeURIComponent(q)}`,
+    ).then((r) => r.estudiantes),
+
+  // GET /api/estado-cuenta/:idEstudiante
+  obtener: (idEstudiante: number) =>
+    get<EstadoCuenta>(`/api/estado-cuenta/${idEstudiante}`),
+
+  // POST /api/estado-cuenta/:idEstudiante/recordatorio
+  enviarRecordatorio: (idEstudiante: number, idTutor?: number) =>
+    post<{
+      mensaje: string;
+      tutor: { id: number; nombre: string; email: string };
+      saldo_pendiente: number;
+    }>(
+      `/api/estado-cuenta/${idEstudiante}/recordatorio`,
+      idTutor ? { id_tutor: idTutor } : {},
+    ),
+};
+
+export interface EstadoCuentaBusqueda {
+  id_estudiante: number;
+  nombre: string;
+  apellido: string;
+  ci: string | null;
+  id_curso: number | null;
+  paralelo: string | null;
+  nombre_grado: string | null;
+}
+
+export interface EstadoCuentaEstudiante {
+  id_estudiante: number;
+  nombre: string;
+  apellido: string;
+  ci: string | null;
+  fecha_nacimiento: string | null;
+  genero: string;
+  estado: string;
+}
+
+export interface EstadoCuentaDeuda {
+  id_deuda: number;
+  monto: string;
+  mes: string;
+  estado_deuda: "pendiente" | "pagado" | "mora";
+  fecha_generacion: string;
+  nombre_concepto: string;
+  concepto_desc: string | null;
+  anio: number;
+}
+
+export interface EstadoCuentaPago {
+  id_pago: number;
+  monto_pagado: string;
+  metodo_pago: string;
+  estado_pago: string;
+  fecha_pago: string;
+  observaciones: string | null;
+  numero_comprobante: string | null;
+  archivo_pdf_url: string | null;
+}
+
+export interface EstadoCuentaTutor {
+  id_tutor: number;
+  nombre: string;
+  apellido: string;
+  correo_electronico: string | null;
+  telefono: string | null;
+  parentesco: string;
+  contacto_emergencia: boolean;
+  autorizado_recoger: boolean;
+}
+
+export interface EstadoCuenta {
+  estudiante: EstadoCuentaEstudiante;
+  deudas: EstadoCuentaDeuda[];
+  pagos: EstadoCuentaPago[];
+  saldo_pendiente: number;
+  tutores: EstadoCuentaTutor[];
+}
+
+// ── Avisos / Comunicación (Ciclo 4) ───────────────────────────────────────────
+// Montado en /api/avisos — publicar: Director o Profesor (roles 2, 3)
+
+export type DestinatarioTipo = "todos" | "por_curso" | "individual";
+
+export const avisosApi = {
+  // GET /api/avisos?estado=&tipo=
+  listar: (params?: { estado?: string; tipo?: DestinatarioTipo }) => {
+    const qs = params
+      ? "?" + new URLSearchParams(params as Record<string, string>).toString()
+      : "";
+    return get<{ avisos: Aviso[] }>(`/api/avisos${qs}`).then((r) => r.avisos);
+  },
+
+  // GET /api/avisos/mis-estudiantes
+  // Profesor: solo estudiantes de sus cursos. Director: todos los activos.
+  listarMisEstudiantes: () =>
+    get<{ estudiantes: AvisoEstudiante[] }>(
+      "/api/avisos/mis-estudiantes",
+    ).then((r) => r.estudiantes),
+
+  // POST /api/avisos
+  publicar: (data: PublicarAvisoPayload) =>
+    post<{ mensaje: string; aviso: AvisoPublicado }>("/api/avisos", data),
+
+  // GET /api/avisos/panel — avisos visibles para el estudiante logueado
+  // (todos, de sus cursos o dirigidos directamente a él).
+  misAvisosPanel: () =>
+    get<{ avisos: AvisoPanel[] }>("/api/avisos/panel").then((r) => r.avisos),
+};
+
+export interface AvisoPanel {
+  id_aviso: number;
+  titulo: string;
+  contenido: string;
+  fecha_envio: string;
+  publicado_por: string;
+}
+
+export interface AvisoEstudiante {
+  id_estudiante: number;
+  nombre: string;
+  apellido: string;
+  ci: string | null;
+}
+
+export interface Aviso {
+  id_aviso: number;
+  titulo: string;
+  contenido: string;
+  destinatario_tipo: DestinatarioTipo;
+  id_curso_destino: number | null;
+  id_estudiante_destino: number | null;
+  estado: string;
+  fecha_envio: string;
+  publicado_por: string;
+}
+
+export interface PublicarAvisoPayload {
+  titulo: string;
+  contenido: string;
+  destinatario_tipo: DestinatarioTipo;
+  id_curso_destino?: number;
+  id_estudiante_destino?: number;
+}
+
+export interface AvisoPublicado {
+  id: number;
+  titulo: string;
+  contenido: string;
+  destinatario_tipo: DestinatarioTipo;
+  destinatarios: number;
+  notificaciones_creadas: number;
+  notificaciones_fallidas: number;
+  fecha_envio: string;
+}
