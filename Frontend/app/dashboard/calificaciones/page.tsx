@@ -777,8 +777,8 @@ export default function CalificacionesPage() {
                       <div className="flex gap-4 text-sm">
                         <TooltipProvider>
                           <Tooltip>
-                            <TooltipTrigger>
-                              <span className="text-muted-foreground">
+                            <TooltipTrigger asChild>
+                              <span className="text-muted-foreground cursor-help">
                                 Ser:{" "}
                                 <span
                                   className={getGradeColor(
@@ -794,8 +794,8 @@ export default function CalificacionesPage() {
                         </TooltipProvider>
                         <TooltipProvider>
                           <Tooltip>
-                            <TooltipTrigger>
-                              <span className="text-muted-foreground">
+                            <TooltipTrigger asChild>
+                              <span className="text-muted-foreground cursor-help">
                                 Saber:{" "}
                                 <span
                                   className={getGradeColor(
@@ -811,8 +811,8 @@ export default function CalificacionesPage() {
                         </TooltipProvider>
                         <TooltipProvider>
                           <Tooltip>
-                            <TooltipTrigger>
-                              <span className="text-muted-foreground">
+                            <TooltipTrigger asChild>
+                              <span className="text-muted-foreground cursor-help">
                                 Hacer:{" "}
                                 <span
                                   className={getGradeColor(
@@ -828,8 +828,8 @@ export default function CalificacionesPage() {
                         </TooltipProvider>
                         <TooltipProvider>
                           <Tooltip>
-                            <TooltipTrigger>
-                              <span className="text-muted-foreground">
+                            <TooltipTrigger asChild>
+                              <span className="text-muted-foreground cursor-help">
                                 Auto:{" "}
                                 <span
                                   className={getGradeColor(

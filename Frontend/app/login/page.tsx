@@ -47,12 +47,14 @@ export default function LoginPage() {
           username: formData.username,
           password: formData.password,
         }),
+      }).catch(() => {
+        throw new TypeError("No se pudo conectar con el servidor. Verifique que el backend esté activo.");
       });
 
-      const data = await response.json();
+      const data = await response.json().catch(() => null);
 
       if (!response.ok) {
-        throw new Error(data.message || "Error al iniciar sesión");
+        throw new Error(data?.message || `Error del servidor: ${response.status}`);
       }
 
       localStorage.setItem("token", data.token);

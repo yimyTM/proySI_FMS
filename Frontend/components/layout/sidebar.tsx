@@ -174,6 +174,12 @@ const navItems: NavItem[] = [
         roles: [1, 2, 3],
       },
       {
+        title: "Libretas",
+        href: "/dashboard/libretas",
+        icon: FileText,
+        roles: [1, 2, 3, 4],
+      },
+      {
         title: "Entregas",
         href: "/dashboard/entregas",
         icon: ArrowRightLeft,

@@ -44,6 +44,9 @@ import {
   Boxes,
   Package,
   Plus,
+  Edit,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 
 interface Material {
@@ -78,14 +81,24 @@ export default function InventarioPage() {
   const [materiales, setMateriales] = useState<Material[]>([]);
   const [movimientos, setMovimientos] = useState<Movimiento[]>([]);
   const [search, setSearch] = useState("");
+  const [estadoFilter, setEstadoFilter] = useState("true");
   const [materialOpen, setMaterialOpen] = useState(false);
   const [movimientoOpen, setMovimientoOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  
+  const [editingMaterial, setEditingMaterial] = useState<Material | null>(null);
   const [materialForm, setMaterialForm] = useState({
     nombre_item: "",
     descripcion: "",
     categoria: "",
     stock_minimo: "",
     stock_inicial: "",
+  });
+  const [editForm, setEditForm] = useState({
+    nombre_item: "",
+    descripcion: "",
+    categoria: "",
+    stock_minimo: "",
   });
   const [movimientoForm, setMovimientoForm] = useState({
     id_material: "",
@@ -94,8 +107,13 @@ export default function InventarioPage() {
     observaciones: "",
   });
 
-  const load = async () => {
-    const qs = search ? `?search=${encodeURIComponent(search)}` : "";
+  const load = async (searchVal = search, est = estadoFilter) => {
+    const paramsList: string[] = [];
+    if (searchVal) paramsList.push(`search=${encodeURIComponent(searchVal)}`);
+    if (est !== "todos") paramsList.push(`estado=${est}`);
+    else paramsList.push("estado=todos");
+    const qs = paramsList.length ? `?${paramsList.join("&")}` : "";
+
     try {
       const [materialesRes, movimientosRes] = await Promise.all([
         fetch(`${API_URL}/api/inventario/materiales${qs}`, {
@@ -125,9 +143,9 @@ export default function InventarioPage() {
   };
 
   useEffect(() => {
-    load();
+    load(search, estadoFilter);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [estadoFilter]);
 
   const stats = useMemo(() => {
     const bajo = materiales.filter((m) => m.stock_actual <= m.stock_minimo);
@@ -160,10 +178,50 @@ export default function InventarioPage() {
         stock_minimo: "",
         stock_inicial: "",
       });
-      load();
+      load(search, estadoFilter);
     } catch (error) {
       toast.error(
         error instanceof Error ? error.message : "Error al crear material",
+      );
+    }
+  };
+
+  const updateMaterial = async () => {
+    if (!editingMaterial) return;
+    try {
+      const res = await fetch(`${API_URL}/api/inventario/materiales/${editingMaterial.id_material}`, {
+        method: "PUT",
+        headers: getHeaders(),
+        body: JSON.stringify(editForm),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Error al actualizar material");
+      toast.success("Material actualizado correctamente");
+      setEditOpen(false);
+      setEditingMaterial(null);
+      load(search, estadoFilter);
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Error al actualizar material",
+      );
+    }
+  };
+
+  const toggleMaterialEstado = async (material: Material) => {
+    const nuevoEstado = !material.estado;
+    try {
+      const res = await fetch(`${API_URL}/api/inventario/materiales/${material.id_material}`, {
+        method: "PUT",
+        headers: getHeaders(),
+        body: JSON.stringify({ estado: nuevoEstado }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Error al cambiar estado del material");
+      toast.success(nuevoEstado ? "Material activado" : "Material desactivado");
+      load(search, estadoFilter);
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Error al cambiar estado",
       );
     }
   };
@@ -188,7 +246,7 @@ export default function InventarioPage() {
         cantidad: "",
         observaciones: "",
       });
-      load();
+      load(search, estadoFilter);
     } catch (error) {
       toast.error(
         error instanceof Error
@@ -420,13 +478,26 @@ export default function InventarioPage() {
           <CardDescription>Inventario activo de la institución</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid gap-3 md:grid-cols-[1fr_120px]">
+          <div className="grid gap-3 md:grid-cols-[1fr_180px_120px]">
             <Input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Buscar material..."
             />
-            <Button variant="outline" onClick={load}>
+            <Select
+              value={estadoFilter}
+              onValueChange={(val) => setEstadoFilter(val)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Filtrar por estado" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="true">Activos</SelectItem>
+                <SelectItem value="false">Inactivos</SelectItem>
+                <SelectItem value="todos">Todos</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button variant="outline" onClick={() => load(search, estadoFilter)}>
               Buscar
             </Button>
           </div>
@@ -439,13 +510,21 @@ export default function InventarioPage() {
                   <TableHead>Stock</TableHead>
                   <TableHead>Minimo</TableHead>
                   <TableHead>Ultimo movimiento</TableHead>
+                  <TableHead className="text-right">Acciones</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {materiales.map((material) => (
                   <TableRow key={material.id_material}>
                     <TableCell>
-                      <p className="font-medium">{material.nombre_item}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium">{material.nombre_item}</p>
+                        {!material.estado && (
+                          <Badge variant="outline" className="bg-muted text-muted-foreground border-dashed">
+                            Inactivo
+                          </Badge>
+                        )}
+                      </div>
                       <p className="text-xs text-muted-foreground">
                         {material.descripcion || "Sin descripcion"}
                       </p>
@@ -470,12 +549,45 @@ export default function InventarioPage() {
                           ).toLocaleString("es-BO")
                         : "Sin movimientos"}
                     </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-2">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => {
+                            setEditingMaterial(material);
+                            setEditForm({
+                              nombre_item: material.nombre_item,
+                              descripcion: material.descripcion || "",
+                              categoria: material.categoria,
+                              stock_minimo: String(material.stock_minimo),
+                            });
+                            setEditOpen(true);
+                          }}
+                          title="Editar material"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => toggleMaterialEstado(material)}
+                          title={material.estado ? "Desactivar material" : "Activar material"}
+                        >
+                          {material.estado ? (
+                            <EyeOff className="h-4 w-4 text-destructive" />
+                          ) : (
+                            <Eye className="h-4 w-4 text-emerald-600" />
+                          )}
+                        </Button>
+                      </div>
+                    </TableCell>
                   </TableRow>
                 ))}
                 {materiales.length === 0 && (
                   <TableRow>
                     <TableCell
-                      colSpan={5}
+                      colSpan={6}
                       className="py-10 text-center text-muted-foreground"
                     >
                       No hay materiales registrados.
@@ -539,6 +651,68 @@ export default function InventarioPage() {
           </div>
         </CardContent>
       </Card>
+
+      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Editar material</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4">
+            <div className="grid gap-2">
+              <Label>Nombre</Label>
+              <Input
+                value={editForm.nombre_item}
+                onChange={(e) =>
+                  setEditForm({
+                    ...editForm,
+                    nombre_item: e.target.value,
+                  })
+                }
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label>Categoria</Label>
+              <Input
+                value={editForm.categoria}
+                onChange={(e) =>
+                  setEditForm({
+                    ...editForm,
+                    categoria: e.target.value,
+                  })
+                }
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label>Stock minimo</Label>
+              <Input
+                type="number"
+                value={editForm.stock_minimo}
+                onChange={(e) =>
+                  setEditForm({
+                    ...editForm,
+                    stock_minimo: e.target.value,
+                  })
+                }
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label>Descripcion</Label>
+              <Textarea
+                value={editForm.descripcion}
+                onChange={(e) =>
+                  setEditForm({
+                    ...editForm,
+                    descripcion: e.target.value,
+                  })
+                }
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button onClick={updateMaterial}>Guardar cambios</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

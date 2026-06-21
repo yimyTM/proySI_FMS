@@ -83,6 +83,13 @@ app.use("/api/avisos", avisoRoutes);
 app.use("/api/reportes", reporteRoutes);
 app.use("/api/chatbot", chatbotRoutes);
 //aqui añaden si quieren sus controllers, para ver si es que funcionan bien
+app.use("/api/libretas", require("./routes/libretaRoutes"));
+app.get("/api/health", (req, res) => {
+  res.status(200).json({
+    ok: true,
+    message: "Backend funcionando",
+  });
+});
 app.use(errorHandler);
 // aca :v
 

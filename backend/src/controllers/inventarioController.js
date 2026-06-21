@@ -99,15 +99,30 @@ const createMaterial = async (req, res) => {
         return res.status(400).json({ message: 'Nombre y categoria son obligatorios' });
     }
 
+    if (Number(stock_minimo) < 0 || Number(stock_inicial) < 0) {
+        return res.status(400).json({ message: 'El stock mínimo y el stock inicial no pueden ser negativos' });
+    }
+
     const client = await pool.connect();
     try {
         await client.query('BEGIN');
+
+        // E2. Material duplicado (Verificar si existe otro material activo con el mismo nombre y categoría)
+        const duplicateCheck = await client.query(
+            'SELECT id_material FROM material WHERE LOWER(nombre_item) = LOWER($1) AND LOWER(categoria) = LOWER($2) AND estado = true',
+            [nombre_item.trim(), categoria.trim()]
+        );
+
+        if (duplicateCheck.rows.length > 0) {
+            await client.query('ROLLBACK');
+            return res.status(409).json({ message: 'El material ya se encuentra registrado y activo.' });
+        }
 
         const material = await client.query(`
             INSERT INTO material (nombre_item, descripcion, categoria, stock_actual, stock_minimo)
             VALUES ($1, $2, $3, 0, $4)
             RETURNING *
-        `, [nombre_item, descripcion || null, categoria, Number(stock_minimo) || 0]);
+        `, [nombre_item.trim(), descripcion || null, categoria.trim(), Number(stock_minimo) || 0]);
 
         if (Number(stock_inicial) > 0) {
             await client.query(`
@@ -123,10 +138,10 @@ const createMaterial = async (req, res) => {
             nombre_modulo: 'inventario',
             nombre_permiso: 'gestionar_inventario',
             metodo: 'POST /api/inventario/materiales',
-            accion: 'CREAR_MATERIAL',
+            accion: 'INSERT',
             tabla_afectada: 'material',
             id_registro_afectado: material.rows[0].id_material,
-            descripcion: `Creacion de material ${nombre_item}`,
+            descripcion: `Creación de material: ${nombre_item}`,
             ip_origen: getClientIp(req)
         });
 
@@ -144,6 +159,32 @@ const updateMaterial = async (req, res) => {
     const { nombre_item, descripcion, categoria, stock_minimo, estado } = req.body;
 
     try {
+        // E2. Material duplicado: si se cambia nombre o categoría, verificar que no colisione con otro material activo
+        if (nombre_item || categoria) {
+            const currentRes = await pool.query('SELECT nombre_item, categoria FROM material WHERE id_material = $1', [id]);
+            if (currentRes.rows.length === 0) {
+                return res.status(404).json({ message: 'Material no encontrado' });
+            }
+            const currentName = currentRes.rows[0].nombre_item;
+            const currentCat = currentRes.rows[0].categoria;
+
+            const targetName = nombre_item !== undefined ? nombre_item.trim() : currentName;
+            const targetCat = categoria !== undefined ? categoria.trim() : currentCat;
+
+            const duplicateCheck = await pool.query(
+                'SELECT id_material FROM material WHERE LOWER(nombre_item) = LOWER($1) AND LOWER(categoria) = LOWER($2) AND estado = true AND id_material <> $3',
+                [targetName, targetCat, id]
+            );
+
+            if (duplicateCheck.rows.length > 0) {
+                return res.status(409).json({ message: 'Ya existe otro material registrado y activo con el mismo nombre y categoría.' });
+            }
+        }
+
+        if (stock_minimo !== undefined && Number(stock_minimo) < 0) {
+            return res.status(400).json({ message: 'El stock mínimo no puede ser negativo' });
+        }
+
         const result = await pool.query(`
             UPDATE material
             SET nombre_item = COALESCE($1, nombre_item),
@@ -154,9 +195,9 @@ const updateMaterial = async (req, res) => {
             WHERE id_material = $6
             RETURNING *
         `, [
-            nombre_item || null,
+            nombre_item ? nombre_item.trim() : null,
             descripcion ?? null,
-            categoria || null,
+            categoria ? categoria.trim() : null,
             stock_minimo === undefined ? null : Number(stock_minimo),
             estado === undefined ? null : Boolean(estado),
             id
@@ -165,6 +206,20 @@ const updateMaterial = async (req, res) => {
         if (result.rows.length === 0) {
             return res.status(404).json({ message: 'Material no encontrado' });
         }
+
+        await registrarBitacora({
+            id_usuario: req.usuario.id,
+            nombre_modulo: 'inventario',
+            nombre_permiso: 'gestionar_inventario',
+            metodo: 'PUT /api/inventario/materiales/:id',
+            accion: 'UPDATE',
+            tabla_afectada: 'material',
+            id_registro_afectado: result.rows[0].id_material,
+            descripcion: estado !== undefined ? 
+                (estado ? `Activación de material: ${result.rows[0].nombre_item}` : `Desactivación de material: ${result.rows[0].nombre_item}`) : 
+                `Modificación de material: ${result.rows[0].nombre_item}`,
+            ip_origen: getClientIp(req)
+        });
 
         res.json({ message: 'Material actualizado correctamente', material: result.rows[0] });
     } catch (error) {
@@ -175,11 +230,25 @@ const updateMaterial = async (req, res) => {
 const registrarMovimiento = async (req, res) => {
     const { id_material, tipo_movimiento, cantidad, observaciones } = req.body;
 
-    if (!id_material || !['entrada', 'salida'].includes(tipo_movimiento) || !Number(cantidad)) {
-        return res.status(400).json({ message: 'Material, tipo y cantidad válida son obligatorios.' });
+    if (!id_material || !['entrada', 'salida'].includes(tipo_movimiento) || !Number(cantidad) || Number(cantidad) <= 0) {
+        return res.status(400).json({ message: 'Material, tipo y cantidad válida (mayor a 0) son obligatorios.' });
     }
 
     try {
+        // E4. Material inactivo: verificar si el material está activo
+        const materialCheck = await pool.query(
+            'SELECT estado, nombre_item FROM material WHERE id_material = $1',
+            [id_material]
+        );
+
+        if (materialCheck.rows.length === 0) {
+            return res.status(404).json({ message: 'Material no encontrado.' });
+        }
+
+        if (!materialCheck.rows[0].estado) {
+            return res.status(400).json({ message: 'Operación no permitida: El material está inactivo.' });
+        }
+
         const result = await pool.query(`
             INSERT INTO movimiento_inventario (id_material, tipo_movimiento, cantidad, id_usuario, observaciones)
             VALUES ($1, $2, $3, $4, $5)
@@ -191,10 +260,10 @@ const registrarMovimiento = async (req, res) => {
             nombre_modulo: 'inventario',
             nombre_permiso: 'gestionar_inventario',
             metodo: 'POST /api/inventario/movimientos',
-            accion: 'REGISTRAR_MOVIMIENTO',
+            accion: 'INSERT',
             tabla_afectada: 'movimiento_inventario',
             id_registro_afectado: result.rows[0].id_movimiento,
-            descripcion: `${tipo_movimiento} de ${cantidad} unidad(es)`,
+            descripcion: `Registro de movimiento (${tipo_movimiento}) de ${cantidad} unidad(es) de ${materialCheck.rows[0].nombre_item}`,
             ip_origen: getClientIp(req)
         });
 
