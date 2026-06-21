@@ -41,7 +41,7 @@ const createProfesor = async (req, res) => {
 
         if (crear_cuenta) {
             if (!email) {
-                throw new Error('El correo electronico es obligatorio para crear la ceunta de usuario');
+                throw new Error('El correo electrónico es obligatorio para crear la cuenta de usuario.');
             }
             const passwordValidation = validatePasswordStrength(password);
             if (!passwordValidation.isValid) {

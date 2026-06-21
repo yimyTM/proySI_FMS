@@ -21,12 +21,12 @@ const requierePermiso = (nombrePermiso) => {
             `, [req.usuario.role, nombrePermiso]);
 
             if (result.rows.length === 0) {
-                return res.status(403).json({ message: 'Operacion rechazada. No tiene el permiso requerido.' });
+                return res.status(403).json({ message: 'Operación rechazada. No tiene el permiso requerido.' });
             }
 
             next();
         } catch (error) {
-            res.status(500).json({ message: 'Error validando permisos', error: error.message });
+            res.status(500).json({ message: 'Error al validar permisos.', error: error.message });
         }
     };
 };
@@ -53,12 +53,12 @@ const requiereFuncionalidad = (metodo) => {
             `, [req.usuario.role, metodo]);
 
             if (result.rows.length === 0) {
-                return res.status(403).json({ message: 'Operacion rechazada. No tiene la funcionalidad requerida.' });
+                return res.status(403).json({ message: 'Operación rechazada. No tiene la funcionalidad requerida.' });
             }
 
             next();
         } catch (error) {
-            res.status(500).json({ message: 'Error validando funcionalidades', error: error.message });
+            res.status(500).json({ message: 'Error al validar funcionalidades.', error: error.message });
         }
     };
 };

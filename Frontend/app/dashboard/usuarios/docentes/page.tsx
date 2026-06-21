@@ -28,6 +28,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { GraduationCap, Plus, AlertCircle, Mail, FileText, Edit, MoreHorizontal, UserPlus, CheckCircle2 } from "lucide-react"
 import { API_URL } from "@/lib/api"
 import { PASSWORD_HINT, validatePasswordStrength } from "@/lib/password-policy"
+import { toast } from "sonner"
 
 export default function DocentesPage() {
   const [profesores, setProfesores] = useState<any[]>([])
@@ -67,9 +68,11 @@ export default function DocentesPage() {
       const res = await fetch(`${API_URL}/api/profesores`, {
         headers: { Authorization: `Bearer ${token}` }
       })
-      if (res.ok) setProfesores(await res.json())
+      const data = await res.json().catch(() => null)
+      if (!res.ok) throw new Error(data?.message || "Error al cargar docentes")
+      setProfesores(data)
     } catch (error) {
-      console.error("Error fetching data:", error)
+      toast.error(error instanceof Error ? error.message : "Error al cargar docentes")
     } finally {
       setIsLoading(false)
     }
@@ -106,7 +109,11 @@ export default function DocentesPage() {
       setIsCreateOpen(false)
       resetCreateForm()
       fetchData()
-    } catch { setFormError("Error de conexión.") }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Error de conexión."
+      setFormError(message)
+      toast.error(message)
+    }
   }
 
   // ── EDITAR DATOS DEL PROFESOR ──
@@ -131,7 +138,11 @@ export default function DocentesPage() {
       if (!res.ok) { setEditError(data.message || "Error al actualizar"); return }
       setIsEditOpen(false)
       fetchData()
-    } catch { setEditError("Error de conexión.") }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Error de conexión."
+      setEditError(message)
+      toast.error(message)
+    }
   }
 
   // ── ASIGNAR CUENTA A PROFESOR SIN CUENTA ──
@@ -160,7 +171,11 @@ export default function DocentesPage() {
       setLinkSuccess("Cuenta creada y vinculada correctamente.")
       fetchData()
       setTimeout(() => { setIsLinkOpen(false); setLinkSuccess("") }, 1500)
-    } catch { setLinkError("Error de conexión.") }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Error de conexión."
+      setLinkError(message)
+      toast.error(message)
+    }
   }
 
   const openEditModal = (prof: any) => {

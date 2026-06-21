@@ -1,6 +1,6 @@
-"use client"
+"use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   BarChart,
   Bar,
@@ -10,7 +10,7 @@ import {
   Tooltip,
   ResponsiveContainer,
   Legend,
-} from "recharts"
+} from "recharts";
 
 const data = [
   { month: "Ene", pagados: 85, pendientes: 15 },
@@ -19,7 +19,7 @@ const data = [
   { month: "Abr", pagados: 88, pendientes: 12 },
   { month: "May", pagados: 0, pendientes: 0 },
   { month: "Jun", pagados: 0, pendientes: 0 },
-]
+];
 
 export function PaymentChart() {
   return (
@@ -32,7 +32,10 @@ export function PaymentChart() {
       <CardContent>
         <div className="h-[300px] w-full">
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={data} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+            <BarChart
+              data={data}
+              margin={{ top: 10, right: 10, left: -10, bottom: 0 }}
+            >
               <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
               <XAxis
                 dataKey="month"
@@ -50,8 +53,8 @@ export function PaymentChart() {
               />
               <Tooltip
                 contentStyle={{
-                  backgroundColor: "hsl(var(--card))",
-                  border: "1px solid hsl(var(--border))",
+                  backgroundColor: "var(--card)",
+                  border: "1px solid var(--border)",
                   borderRadius: "8px",
                   fontSize: "12px",
                 }}
@@ -65,13 +68,13 @@ export function PaymentChart() {
               <Bar
                 dataKey="pagados"
                 name="Pagados"
-                fill="hsl(var(--chart-2))"
+                fill="var(--chart-2)"
                 radius={[4, 4, 0, 0]}
               />
               <Bar
                 dataKey="pendientes"
                 name="Pendientes"
-                fill="hsl(var(--chart-3))"
+                fill="var(--chart-3)"
                 radius={[4, 4, 0, 0]}
               />
             </BarChart>
@@ -79,5 +82,5 @@ export function PaymentChart() {
         </div>
       </CardContent>
     </Card>
-  )
+  );
 }

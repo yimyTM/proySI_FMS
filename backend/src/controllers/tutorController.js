@@ -1,5 +1,46 @@
 const pool = require('../config/db');
 
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const PHONE_REGEX = /^\d+$/;
+
+const normalizeOptionalEmail = (email) => {
+    if (email === undefined || email === null || String(email).trim() === '') {
+        return null;
+    }
+    return String(email).trim().toLowerCase();
+};
+
+const validarCorreoTutor = (email) => {
+    const normalized = normalizeOptionalEmail(email);
+    if (normalized && !EMAIL_REGEX.test(normalized)) {
+        return {
+            isValid: false,
+            message: 'El correo electrónico del tutor debe tener un formato válido. Ejemplo: tutor@correo.com'
+        };
+    }
+
+    return { isValid: true, value: normalized };
+};
+
+const normalizeOptionalPhone = (phone) => {
+    if (phone === undefined || phone === null || String(phone).trim() === '') {
+        return null;
+    }
+    return String(phone).trim();
+};
+
+const validarTelefonoTutor = (phone) => {
+    const normalized = normalizeOptionalPhone(phone);
+    if (normalized && !PHONE_REGEX.test(normalized)) {
+        return {
+            isValid: false,
+            message: 'El teléfono del tutor debe contener solo números.'
+        };
+    }
+
+    return { isValid: true, value: normalized };
+};
+
 const buscarTutores = async (req, res) => {
     const { search } = req.query;
     try {
@@ -15,6 +56,17 @@ const buscarTutores = async (req, res) => {
 
 const registrarTutor = async (req, res) => {
     const { nombre, apellido, ci, genero, telefono, correo_electronico, direccion } = req.body;
+    const correoValidation = validarCorreoTutor(correo_electronico);
+    const telefonoValidation = validarTelefonoTutor(telefono);
+
+    if (!correoValidation.isValid) {
+        return res.status(400).json({ message: correoValidation.message });
+    }
+
+    if (!telefonoValidation.isValid) {
+        return res.status(400).json({ message: telefonoValidation.message });
+    }
+
     try {
         // NULL-safe: si ci es null/undefined, no validar duplicado por CI
         if (ci) {
@@ -27,11 +79,11 @@ const registrarTutor = async (req, res) => {
         const nuevoTutor = await pool.query(
             `INSERT INTO tutor (nombre, apellido, ci, genero, telefono, correo_electronico, direccion) 
              VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
-            [nombre, apellido, ci, genero, telefono, correo_electronico, direccion]
+            [nombre, apellido, ci, genero, telefonoValidation.value, correoValidation.value, direccion]
         );
 
         let advertencia = null;
-        if (!telefono && !correo_electronico) {
+        if (!telefonoValidation.value && !correoValidation.value) {
             advertencia = 'El tutor no tiene datos de contacto. Las notificaciones automáticas no podrán enviarse.';
         }
 
@@ -57,7 +109,7 @@ const vincularTutor = async (req, res) => {
              VALUES ($1, $2, $3, $4, $5) RETURNING *`,
             [id_tutor, id_estudiante, parentesco, autorizado_recoger, contacto_emergencia]
         );
-        res.status(201).json({ message: 'Vínculo creado exitosamente', vinculo: vinculo.rows[0] });
+        res.status(201).json({ message: 'Vínculo creado correctamente.', vinculo: vinculo.rows[0] });
     } catch (error) {
         res.status(500).json({ message: 'Error al vincular tutor', error: error.message });
     }
@@ -85,6 +137,17 @@ const desvincularTutor = async (req, res) => {
 const editarTutor = async (req, res) => {
     const { id_tutor } = req.params;
     const { nombre, apellido, ci, genero, telefono, correo_electronico, direccion } = req.body;
+    const correoValidation = validarCorreoTutor(correo_electronico);
+    const telefonoValidation = validarTelefonoTutor(telefono);
+
+    if (!correoValidation.isValid) {
+        return res.status(400).json({ message: correoValidation.message });
+    }
+
+    if (!telefonoValidation.isValid) {
+        return res.status(400).json({ message: telefonoValidation.message });
+    }
+
     try {
         // Si se cambia el CI, verificar que no exista en otro tutor
         if (ci) {
@@ -107,7 +170,7 @@ const editarTutor = async (req, res) => {
                 correo_electronico = COALESCE($6, correo_electronico),
                 direccion = COALESCE($7, direccion)
              WHERE id_tutor = $8 RETURNING *`,
-            [nombre, apellido, ci, genero, telefono, correo_electronico, direccion, id_tutor]
+            [nombre, apellido, ci, genero, telefonoValidation.value, correoValidation.value, direccion, id_tutor]
         );
 
         if (updated.rows.length === 0) {

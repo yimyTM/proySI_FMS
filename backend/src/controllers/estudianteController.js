@@ -1,4 +1,6 @@
 const pool = require('../config/db');
+const bcrypt = require('bcryptjs');
+const { validatePasswordStrength } = require('../utils/passwordPolicy');
 
 const estadosEstudiante = new Set(['activo', 'inactivo', 'retirado', 'egresado']);
 
@@ -331,4 +333,71 @@ const exportarEstudiantesCsv = async (req, res) => {
     }
 };
 
-module.exports = { getEstudiantes, createEstudiante, updateEstudiante, exportarEstudiantesCsv };
+const crearCuentaEstudiante = async (req, res) => {
+    const { id } = req.params;
+    const { username, password, email } = req.body;
+
+    if (!username || !password || !email) {
+        return res.status(400).json({ message: 'Usuario, contraseña y email son obligatorios.' });
+    }
+
+    const passVal = validatePasswordStrength(password);
+    if (!passVal.isValid) {
+        return res.status(400).json({ message: passVal.message });
+    }
+
+    try {
+        const estResult = await pool.query(
+            'SELECT id_estudiante, nombre, apellido, id_usuario FROM estudiante WHERE id_estudiante = $1',
+            [id]
+        );
+        if (estResult.rows.length === 0) {
+            return res.status(404).json({ message: 'Estudiante no encontrado.' });
+        }
+        if (estResult.rows[0].id_usuario) {
+            return res.status(409).json({ message: 'El estudiante ya tiene una cuenta de acceso.' });
+        }
+
+        const rolResult = await pool.query(
+            `SELECT id_rol FROM rol WHERE nombre_rol = 'Estudiante'`
+        );
+        if (rolResult.rows.length === 0) {
+            return res.status(500).json({ message: "Rol 'Estudiante' no encontrado. Ejecuta la migración." });
+        }
+        const id_rol = rolResult.rows[0].id_rol;
+
+        const dupCheck = await pool.query(
+            'SELECT id_usuario FROM usuario WHERE username = $1 OR email = $2',
+            [username, email]
+        );
+        if (dupCheck.rows.length > 0) {
+            return res.status(409).json({ message: 'El nombre de usuario o email ya está en uso.' });
+        }
+
+        const salt = await bcrypt.genSalt(10);
+        const password_hash = await bcrypt.hash(password, salt);
+
+        const userResult = await pool.query(
+            `INSERT INTO usuario (username, password_hash, email, id_rol)
+             VALUES ($1, $2, $3, $4) RETURNING id_usuario`,
+            [username, password_hash, email, id_rol]
+        );
+        const id_usuario = userResult.rows[0].id_usuario;
+
+        await pool.query(
+            'UPDATE estudiante SET id_usuario = $1 WHERE id_estudiante = $2',
+            [id_usuario, id]
+        );
+
+        const est = estResult.rows[0];
+        res.status(201).json({
+            message: `Cuenta creada para ${est.nombre} ${est.apellido}.`,
+            username,
+            email
+        });
+    } catch (error) {
+        res.status(500).json({ message: 'Error al crear cuenta de estudiante', error: error.message });
+    }
+};
+
+module.exports = { getEstudiantes, createEstudiante, updateEstudiante, exportarEstudiantesCsv, crearCuentaEstudiante };

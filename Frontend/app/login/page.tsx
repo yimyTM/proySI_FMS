@@ -56,14 +56,22 @@ export default function LoginPage() {
       }
 
       localStorage.setItem("token", data.token);
-      localStorage.setItem("userRole", String(data.role)); // El id de rol real devuelto por la BD
+      localStorage.setItem("userRole", String(data.role));
+      localStorage.setItem("userNombreRol", data.nombre_rol || "");
       localStorage.setItem("userName", formData.username);
       localStorage.setItem(
         "userFuncionalidades",
         JSON.stringify(data.funcionalidades || []),
       );
+      if (data.id_estudiante) {
+        localStorage.setItem("idEstudiante", String(data.id_estudiante));
+      }
 
-      router.push("/dashboard");
+      if (data.nombre_rol === "Estudiante") {
+        router.push("/estudiante/mis-pagos");
+      } else {
+        router.push("/dashboard");
+      }
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -76,8 +84,12 @@ export default function LoginPage() {
       <div className="w-full max-w-md">
         {/* Logo y título */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 mb-4">
-            <GraduationCap className="h-8 w-8 text-primary" />
+          <div className="inline-flex items-center justify-center w-22 h-22 rounded-full bg-primary/10 mb-4">
+            <img
+              src="/logoBuho.webp"
+              alt="Logo"
+              className="h-22 w-22 rounded-full"
+            />
           </div>
           <h1 className="font-sans text-2xl font-bold text-foreground">
             EduGestión

@@ -47,7 +47,7 @@ const getPermissions = async (req, res) => {
         `);
         res.json(result.rows);
     } catch (error) {
-        res.status(500).json({ message: 'Error al obetener el listado de permisos', error: error.message });
+        res.status(500).json({ message: 'Error al obtener el listado de permisos.', error: error.message });
     }
 }
 
@@ -57,7 +57,7 @@ const createRole = async (req, res) => {
     const tieneFuncionalidades = Array.isArray(funcionalidades) && funcionalidades.length > 0;
 
     if (!nombre_rol || (!tienePermisos && !tieneFuncionalidades)) {
-        return res.status(400).json({ message: 'Nombre de rol y lista de funcionalidades son obligatorios' });
+        return res.status(400).json({ message: 'El nombre del rol y la lista de funcionalidades son obligatorios.' });
     }
 
     const client = await pool.connect();
@@ -79,7 +79,7 @@ const createRole = async (req, res) => {
 
             if (funcionalidadesUnicas.length === 0) {
                 await client.query('ROLLBACK');
-                return res.status(400).json({ message: 'La lista de funcionalidades no es valida' });
+                return res.status(400).json({ message: 'La lista de funcionalidades no es válida.' });
             }
 
             const funcionalidadesResult = await client.query(
@@ -92,7 +92,7 @@ const createRole = async (req, res) => {
 
             if (funcionalidadesResult.rows.length !== funcionalidadesUnicas.length) {
                 await client.query('ROLLBACK');
-                return res.status(400).json({ message: 'Una o mas funcionalidades no existen o estan inactivas' });
+                return res.status(400).json({ message: 'Una o más funcionalidades no existen o están inactivas.' });
             }
 
             permisosUnicos = [...new Set(funcionalidadesResult.rows.map(row => row.id_permiso))];
@@ -108,7 +108,7 @@ const createRole = async (req, res) => {
 
             if (permisosUnicos.length === 0) {
                 await client.query('ROLLBACK');
-                return res.status(400).json({ message: 'La lista de permisos no es valida' });
+                return res.status(400).json({ message: 'La lista de permisos no es válida.' });
             }
 
             const funcionalidadesResult = await client.query(
@@ -137,14 +137,14 @@ const createRole = async (req, res) => {
         }
 
         await client.query('COMMIT');
-        res.status(201).json({ message: 'Rol creado exitosamente', id_rol: newRoleId });
+        res.status(201).json({ message: 'Rol creado correctamente.', id_rol: newRoleId });
     } catch (error) {
         await client.query('ROLLBACK');
         if (error.code === '23505') {
-            return res.status(400).json({ message: 'El nombre del rol ya esta en uso' });
+            return res.status(400).json({ message: 'El nombre del rol ya está en uso.' });
         }
 
-        res.status(500).json({ message: 'Error al crear el nuevo rol', error: error.message });
+        res.status(500).json({ message: 'Error al crear el nuevo rol.', error: error.message });
     } finally {
         client.release();
     }
@@ -161,19 +161,19 @@ const deleteRole = async (req, res) => {
 
         if (parseInt(userCheck.rows[0].count) > 0) {
             return res.status(400).json({
-                message: 'No se puede eliminar el rol por que hay usuarios activos asociados a ese mismo rol. Sugerencia: Desactivar e rol o cambiar el rol de los usuarios primero.'
+                message: 'No se puede eliminar el rol porque hay usuarios activos asociados. Desactive el rol o cambie el rol de los usuarios primero.'
             });
         }
 
         const deleteResult = await pool.query('DELETE FROM rol WHERE id_rol = $1 RETURNING *', [id]);
 
         if (deleteResult.rows.length === 0) {
-            return res.status(404).json({ message: 'Rol no encontrado' });
+            return res.status(404).json({ message: 'Rol no encontrado.' });
         }
 
-        res.json({ message: 'Rol eliminado correctamente' });
+        res.json({ message: 'Rol eliminado correctamente.' });
     } catch (error) {
-        res.status(500).json({ message: 'Error al eliminar el rol', error: error.message });
+        res.status(500).json({ message: 'Error al eliminar el rol.', error: error.message });
     }
 }
 

@@ -1,15 +1,15 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card"
+} from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -17,16 +17,16 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table"
+} from "@/components/ui/table";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select"
-import { Badge } from "@/components/ui/badge"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+} from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Dialog,
   DialogContent,
@@ -35,7 +35,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog"
+} from "@/components/ui/dialog";
 import {
   Save,
   FileText,
@@ -50,46 +50,46 @@ import {
   ChevronDown,
   ChevronRight,
   Eye,
-} from "lucide-react"
+} from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from "@/components/ui/tooltip"
+} from "@/components/ui/tooltip";
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
-} from "@/components/ui/collapsible"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
+} from "@/components/ui/collapsible";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 
 // Tipos
 interface SubPunto {
-  id: number
-  nombre: string
-  nota: number | null
+  id: number;
+  nombre: string;
+  nota: number | null;
 }
 
 interface Dimension {
-  nombre: string
-  porcentaje: number
-  subPuntos: SubPunto[]
-  promedio: number | null
+  nombre: string;
+  porcentaje: number;
+  subPuntos: SubPunto[];
+  promedio: number | null;
 }
 
 interface StudentGrade {
-  id: number
-  name: string
-  ci: string
+  id: number;
+  name: string;
+  ci: string;
   dimensiones: {
-    ser: Dimension
-    saber: Dimension
-    hacer: Dimension
-    autoevaluacion: Dimension
-  }
-  total: number | null
+    ser: Dimension;
+    saber: Dimension;
+    hacer: Dimension;
+    autoevaluacion: Dimension;
+  };
+  total: number | null;
 }
 
 // Datos de ejemplo
@@ -132,9 +132,7 @@ const initialStudents: StudentGrade[] = [
       autoevaluacion: {
         nombre: "Autoevaluación",
         porcentaje: 5,
-        subPuntos: [
-          { id: 1, nombre: "Autoevaluación Trimestral", nota: 90 },
-        ],
+        subPuntos: [{ id: 1, nombre: "Autoevaluación Trimestral", nota: 90 }],
         promedio: 90,
       },
     },
@@ -178,9 +176,7 @@ const initialStudents: StudentGrade[] = [
       autoevaluacion: {
         nombre: "Autoevaluación",
         porcentaje: 5,
-        subPuntos: [
-          { id: 1, nombre: "Autoevaluación Trimestral", nota: 95 },
-        ],
+        subPuntos: [{ id: 1, nombre: "Autoevaluación Trimestral", nota: 95 }],
         promedio: 95,
       },
     },
@@ -224,9 +220,7 @@ const initialStudents: StudentGrade[] = [
       autoevaluacion: {
         nombre: "Autoevaluación",
         porcentaje: 5,
-        subPuntos: [
-          { id: 1, nombre: "Autoevaluación Trimestral", nota: 80 },
-        ],
+        subPuntos: [{ id: 1, nombre: "Autoevaluación Trimestral", nota: 80 }],
         promedio: 80,
       },
     },
@@ -302,65 +296,69 @@ const initialStudents: StudentGrade[] = [
       autoevaluacion: {
         nombre: "Autoevaluación",
         porcentaje: 5,
-        subPuntos: [
-          { id: 1, nombre: "Autoevaluación Trimestral", nota: 100 },
-        ],
+        subPuntos: [{ id: 1, nombre: "Autoevaluación Trimestral", nota: 100 }],
         promedio: 100,
       },
     },
     total: null,
   },
-]
+];
 
 // Calcula el promedio ponderado según el sistema boliviano
 function calculateTotal(student: StudentGrade): number | null {
-  const { ser, saber, hacer, autoevaluacion } = student.dimensiones
+  const { ser, saber, hacer, autoevaluacion } = student.dimensiones;
   if (
     ser.promedio === null ||
     saber.promedio === null ||
     hacer.promedio === null ||
     autoevaluacion.promedio === null
   ) {
-    return null
+    return null;
   }
   return Math.round(
     ser.promedio * 0.1 +
       saber.promedio * 0.45 +
       hacer.promedio * 0.4 +
-      autoevaluacion.promedio * 0.05
-  )
+      autoevaluacion.promedio * 0.05,
+  );
 }
 
 function getGradeColor(grade: number | null): string {
-  if (grade === null) return "text-muted-foreground"
-  if (grade >= 90) return "text-success"
-  if (grade >= 70) return "text-primary"
-  if (grade >= 51) return "text-amber-500"
-  return "text-destructive"
+  if (grade === null) return "text-muted-foreground";
+  if (grade >= 90) return "text-success";
+  if (grade >= 70) return "text-primary";
+  if (grade >= 51) return "text-amber-500";
+  return "text-destructive";
 }
 
 function getGradeBadge(grade: number | null) {
-  if (grade === null) return { label: "Sin nota", variant: "secondary" as const }
-  if (grade >= 90) return { label: "Excelente", variant: "default" as const }
-  if (grade >= 70) return { label: "Bueno", variant: "secondary" as const }
-  if (grade >= 51) return { label: "Suficiente", variant: "outline" as const }
-  return { label: "Insuficiente", variant: "destructive" as const }
+  if (grade === null)
+    return { label: "Sin nota", variant: "secondary" as const };
+  if (grade >= 90) return { label: "Excelente", variant: "default" as const };
+  if (grade >= 70) return { label: "Bueno", variant: "secondary" as const };
+  if (grade >= 51) return { label: "Suficiente", variant: "outline" as const };
+  return { label: "Insuficiente", variant: "destructive" as const };
 }
 
 export default function CalificacionesPage() {
-  const [students, setStudents] = useState(initialStudents)
-  const [selectedGrade, setSelectedGrade] = useState("3A")
-  const [selectedSubject, setSelectedSubject] = useState("matematicas")
-  const [selectedTrimester, setSelectedTrimester] = useState("1")
-  const [expandedStudent, setExpandedStudent] = useState<number | null>(null)
-  const [editingStudent, setEditingStudent] = useState<StudentGrade | null>(null)
-  const [isDialogOpen, setIsDialogOpen] = useState(false)
-  const [newSubPunto, setNewSubPunto] = useState({ nombre: "", dimension: "ser" })
+  const [students, setStudents] = useState(initialStudents);
+  const [selectedGrade, setSelectedGrade] = useState("3A");
+  const [selectedSubject, setSelectedSubject] = useState("matematicas");
+  const [selectedTrimester, setSelectedTrimester] = useState("1");
+  const [expandedStudent, setExpandedStudent] = useState<number | null>(null);
+  const [editingStudent, setEditingStudent] = useState<StudentGrade | null>(
+    null,
+  );
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [newSubPunto, setNewSubPunto] = useState({
+    nombre: "",
+    dimension: "ser",
+  });
 
   const studentsWithTotal = students.map((student) => ({
     ...student,
     total: calculateTotal(student),
-  }))
+  }));
 
   const averageTotal =
     studentsWithTotal.filter((s) => s.total !== null).length > 0
@@ -368,41 +366,46 @@ export default function CalificacionesPage() {
           studentsWithTotal
             .filter((s) => s.total !== null)
             .reduce((acc, s) => acc + (s.total || 0), 0) /
-            studentsWithTotal.filter((s) => s.total !== null).length
+            studentsWithTotal.filter((s) => s.total !== null).length,
         )
-      : 0
+      : 0;
 
-  const studentsWithGrades = studentsWithTotal.filter((s) => s.total !== null).length
-  const totalStudents = studentsWithTotal.length
+  const studentsWithGrades = studentsWithTotal.filter(
+    (s) => s.total !== null,
+  ).length;
+  const totalStudents = studentsWithTotal.length;
 
   const handleGradeChange = (
     studentId: number,
     dimension: keyof StudentGrade["dimensiones"],
     subPuntoId: number,
-    value: string
+    value: string,
   ) => {
-    const numValue = value === "" ? null : Math.min(100, Math.max(0, parseInt(value)))
-    
+    const numValue =
+      value === "" ? null : Math.min(100, Math.max(0, parseInt(value)));
+
     setStudents((prev) =>
       prev.map((student) => {
-        if (student.id !== studentId) return student
-        
+        if (student.id !== studentId) return student;
+
         const updatedDimension = {
           ...student.dimensiones[dimension],
           subPuntos: student.dimensiones[dimension].subPuntos.map((sp) =>
-            sp.id === subPuntoId ? { ...sp, nota: numValue } : sp
+            sp.id === subPuntoId ? { ...sp, nota: numValue } : sp,
           ),
-        }
-        
+        };
+
         // Recalcular promedio de la dimensión
-        const notasValidas = updatedDimension.subPuntos.filter((sp) => sp.nota !== null)
+        const notasValidas = updatedDimension.subPuntos.filter(
+          (sp) => sp.nota !== null,
+        );
         updatedDimension.promedio =
           notasValidas.length > 0
             ? Math.round(
                 notasValidas.reduce((acc, sp) => acc + (sp.nota || 0), 0) /
-                  notasValidas.length
+                  notasValidas.length,
               )
-            : null
+            : null;
 
         return {
           ...student,
@@ -410,14 +413,14 @@ export default function CalificacionesPage() {
             ...student.dimensiones,
             [dimension]: updatedDimension,
           },
-        }
-      })
-    )
-  }
+        };
+      }),
+    );
+  };
 
   const handleAddSubPunto = (dimension: keyof StudentGrade["dimensiones"]) => {
-    if (!newSubPunto.nombre.trim()) return
-    
+    if (!newSubPunto.nombre.trim()) return;
+
     setStudents((prev) =>
       prev.map((student) => ({
         ...student,
@@ -435,34 +438,36 @@ export default function CalificacionesPage() {
             ],
           },
         },
-      }))
-    )
-    setNewSubPunto({ nombre: "", dimension: "ser" })
-    setIsDialogOpen(false)
-  }
+      })),
+    );
+    setNewSubPunto({ nombre: "", dimension: "ser" });
+    setIsDialogOpen(false);
+  };
 
   const handleRemoveSubPunto = (
     dimension: keyof StudentGrade["dimensiones"],
-    subPuntoId: number
+    subPuntoId: number,
   ) => {
     setStudents((prev) =>
       prev.map((student) => {
         const updatedDimension = {
           ...student.dimensiones[dimension],
           subPuntos: student.dimensiones[dimension].subPuntos.filter(
-            (sp) => sp.id !== subPuntoId
+            (sp) => sp.id !== subPuntoId,
           ),
-        }
-        
+        };
+
         // Recalcular promedio
-        const notasValidas = updatedDimension.subPuntos.filter((sp) => sp.nota !== null)
+        const notasValidas = updatedDimension.subPuntos.filter(
+          (sp) => sp.nota !== null,
+        );
         updatedDimension.promedio =
           notasValidas.length > 0
             ? Math.round(
                 notasValidas.reduce((acc, sp) => acc + (sp.nota || 0), 0) /
-                  notasValidas.length
+                  notasValidas.length,
               )
-            : null
+            : null;
 
         return {
           ...student,
@@ -470,10 +475,10 @@ export default function CalificacionesPage() {
             ...student.dimensiones,
             [dimension]: updatedDimension,
           },
-        }
-      })
-    )
-  }
+        };
+      }),
+    );
+  };
 
   return (
     <div className="space-y-6">
@@ -505,9 +510,12 @@ export default function CalificacionesPage() {
           <div className="flex items-start gap-3">
             <Info className="h-5 w-5 text-primary shrink-0 mt-0.5" />
             <div className="text-sm">
-              <p className="font-medium text-primary">Sistema de Calificación Boliviano</p>
+              <p className="font-medium text-primary">
+                Sistema de Calificación Boliviano
+              </p>
               <p className="text-muted-foreground mt-1">
-                Cada dimensión puede tener múltiples sub-puntos. El promedio de los sub-puntos determina la nota de cada dimensión.
+                Cada dimensión puede tener múltiples sub-puntos. El promedio de
+                los sub-puntos determina la nota de cada dimensión.
               </p>
               <div className="flex flex-wrap gap-4 mt-2 text-xs">
                 <span className="flex items-center gap-1">
@@ -558,7 +566,10 @@ export default function CalificacionesPage() {
             </div>
             <div className="flex-1 min-w-0">
               <label className="text-sm font-medium mb-2 block">Materia</label>
-              <Select value={selectedSubject} onValueChange={setSelectedSubject}>
+              <Select
+                value={selectedSubject}
+                onValueChange={setSelectedSubject}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Seleccionar materia" />
                 </SelectTrigger>
@@ -568,15 +579,22 @@ export default function CalificacionesPage() {
                   <SelectItem value="ciencias">Ciencias Naturales</SelectItem>
                   <SelectItem value="sociales">Ciencias Sociales</SelectItem>
                   <SelectItem value="ingles">Inglés</SelectItem>
-                  <SelectItem value="educacion_fisica">Educación Física</SelectItem>
+                  <SelectItem value="educacion_fisica">
+                    Educación Física
+                  </SelectItem>
                   <SelectItem value="artes">Artes Plásticas</SelectItem>
                   <SelectItem value="musica">Música</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div className="flex-1 min-w-0">
-              <label className="text-sm font-medium mb-2 block">Trimestre</label>
-              <Select value={selectedTrimester} onValueChange={setSelectedTrimester}>
+              <label className="text-sm font-medium mb-2 block">
+                Trimestre
+              </label>
+              <Select
+                value={selectedTrimester}
+                onValueChange={setSelectedTrimester}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Seleccionar trimestre" />
                 </SelectTrigger>
@@ -609,7 +627,9 @@ export default function CalificacionesPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Con notas</p>
-                <p className="text-2xl font-bold text-success">{studentsWithGrades}</p>
+                <p className="text-2xl font-bold text-success">
+                  {studentsWithGrades}
+                </p>
               </div>
               <ClipboardList className="h-8 w-8 text-success/50" />
             </div>
@@ -633,7 +653,9 @@ export default function CalificacionesPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Promedio</p>
-                <p className={`text-2xl font-bold ${getGradeColor(averageTotal)}`}>
+                <p
+                  className={`text-2xl font-bold ${getGradeColor(averageTotal)}`}
+                >
                   {averageTotal || "-"}
                 </p>
               </div>
@@ -668,7 +690,9 @@ export default function CalificacionesPage() {
                   <SelectItem value="ser">Ser (10%)</SelectItem>
                   <SelectItem value="saber">Saber (45%)</SelectItem>
                   <SelectItem value="hacer">Hacer (40%)</SelectItem>
-                  <SelectItem value="autoevaluacion">Autoevaluación (5%)</SelectItem>
+                  <SelectItem value="autoevaluacion">
+                    Autoevaluación (5%)
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -691,7 +715,7 @@ export default function CalificacionesPage() {
             <Button
               onClick={() =>
                 handleAddSubPunto(
-                  newSubPunto.dimension as keyof StudentGrade["dimensiones"]
+                  newSubPunto.dimension as keyof StudentGrade["dimensiones"],
                 )
               }
             >
@@ -730,7 +754,7 @@ export default function CalificacionesPage() {
                 open={expandedStudent === student.id}
                 onOpenChange={() =>
                   setExpandedStudent(
-                    expandedStudent === student.id ? null : student.id
+                    expandedStudent === student.id ? null : student.id,
                   )
                 }
               >
@@ -744,7 +768,9 @@ export default function CalificacionesPage() {
                       )}
                       <div className="text-left">
                         <p className="font-medium">{student.name}</p>
-                        <p className="text-xs text-muted-foreground">CI: {student.ci}</p>
+                        <p className="text-xs text-muted-foreground">
+                          CI: {student.ci}
+                        </p>
                       </div>
                     </div>
                     <div className="flex items-center gap-6">
@@ -754,7 +780,11 @@ export default function CalificacionesPage() {
                             <TooltipTrigger>
                               <span className="text-muted-foreground">
                                 Ser:{" "}
-                                <span className={getGradeColor(student.dimensiones.ser.promedio)}>
+                                <span
+                                  className={getGradeColor(
+                                    student.dimensiones.ser.promedio,
+                                  )}
+                                >
                                   {student.dimensiones.ser.promedio ?? "-"}
                                 </span>
                               </span>
@@ -767,7 +797,11 @@ export default function CalificacionesPage() {
                             <TooltipTrigger>
                               <span className="text-muted-foreground">
                                 Saber:{" "}
-                                <span className={getGradeColor(student.dimensiones.saber.promedio)}>
+                                <span
+                                  className={getGradeColor(
+                                    student.dimensiones.saber.promedio,
+                                  )}
+                                >
                                   {student.dimensiones.saber.promedio ?? "-"}
                                 </span>
                               </span>
@@ -780,7 +814,11 @@ export default function CalificacionesPage() {
                             <TooltipTrigger>
                               <span className="text-muted-foreground">
                                 Hacer:{" "}
-                                <span className={getGradeColor(student.dimensiones.hacer.promedio)}>
+                                <span
+                                  className={getGradeColor(
+                                    student.dimensiones.hacer.promedio,
+                                  )}
+                                >
                                   {student.dimensiones.hacer.promedio ?? "-"}
                                 </span>
                               </span>
@@ -793,8 +831,13 @@ export default function CalificacionesPage() {
                             <TooltipTrigger>
                               <span className="text-muted-foreground">
                                 Auto:{" "}
-                                <span className={getGradeColor(student.dimensiones.autoevaluacion.promedio)}>
-                                  {student.dimensiones.autoevaluacion.promedio ?? "-"}
+                                <span
+                                  className={getGradeColor(
+                                    student.dimensiones.autoevaluacion.promedio,
+                                  )}
+                                >
+                                  {student.dimensiones.autoevaluacion
+                                    .promedio ?? "-"}
                                 </span>
                               </span>
                             </TooltipTrigger>
@@ -821,7 +864,9 @@ export default function CalificacionesPage() {
                           <TabsTrigger value="ser">Ser (10%)</TabsTrigger>
                           <TabsTrigger value="saber">Saber (45%)</TabsTrigger>
                           <TabsTrigger value="hacer">Hacer (40%)</TabsTrigger>
-                          <TabsTrigger value="autoevaluacion">Auto (5%)</TabsTrigger>
+                          <TabsTrigger value="autoevaluacion">
+                            Auto (5%)
+                          </TabsTrigger>
                         </TabsList>
                         {(
                           Object.keys(student.dimensiones) as Array<
@@ -841,7 +886,8 @@ export default function CalificacionesPage() {
                                   </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                  {student.dimensiones[dim].subPuntos.length === 0 ? (
+                                  {student.dimensiones[dim].subPuntos.length ===
+                                  0 ? (
                                     <TableRow>
                                       <TableCell
                                         colSpan={3}
@@ -853,8 +899,11 @@ export default function CalificacionesPage() {
                                           variant="link"
                                           size="sm"
                                           onClick={() => {
-                                            setNewSubPunto({ nombre: "", dimension: dim })
-                                            setIsDialogOpen(true)
+                                            setNewSubPunto({
+                                              nombre: "",
+                                              dimension: dim,
+                                            });
+                                            setIsDialogOpen(true);
                                           }}
                                         >
                                           Agregar uno
@@ -862,43 +911,48 @@ export default function CalificacionesPage() {
                                       </TableCell>
                                     </TableRow>
                                   ) : (
-                                    student.dimensiones[dim].subPuntos.map((subPunto) => (
-                                      <TableRow key={subPunto.id}>
-                                        <TableCell className="font-medium">
-                                          {subPunto.nombre}
-                                        </TableCell>
-                                        <TableCell>
-                                          <Input
-                                            type="number"
-                                            min="0"
-                                            max="100"
-                                            className="w-20 mx-auto text-center"
-                                            value={subPunto.nota ?? ""}
-                                            onChange={(e) =>
-                                              handleGradeChange(
-                                                student.id,
-                                                dim,
-                                                subPunto.id,
-                                                e.target.value
-                                              )
-                                            }
-                                            placeholder="-"
-                                          />
-                                        </TableCell>
-                                        <TableCell>
-                                          <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            className="h-8 w-8 text-destructive hover:text-destructive"
-                                            onClick={() =>
-                                              handleRemoveSubPunto(dim, subPunto.id)
-                                            }
-                                          >
-                                            <Trash2 className="h-4 w-4" />
-                                          </Button>
-                                        </TableCell>
-                                      </TableRow>
-                                    ))
+                                    student.dimensiones[dim].subPuntos.map(
+                                      (subPunto) => (
+                                        <TableRow key={subPunto.id}>
+                                          <TableCell className="font-medium">
+                                            {subPunto.nombre}
+                                          </TableCell>
+                                          <TableCell>
+                                            <Input
+                                              type="number"
+                                              min="0"
+                                              max="100"
+                                              className="w-20 mx-auto text-center"
+                                              value={subPunto.nota ?? ""}
+                                              onChange={(e) =>
+                                                handleGradeChange(
+                                                  student.id,
+                                                  dim,
+                                                  subPunto.id,
+                                                  e.target.value,
+                                                )
+                                              }
+                                              placeholder="-"
+                                            />
+                                          </TableCell>
+                                          <TableCell>
+                                            <Button
+                                              variant="ghost"
+                                              size="icon"
+                                              className="h-8 w-8 text-destructive hover:text-destructive"
+                                              onClick={() =>
+                                                handleRemoveSubPunto(
+                                                  dim,
+                                                  subPunto.id,
+                                                )
+                                              }
+                                            >
+                                              <Trash2 className="h-4 w-4" />
+                                            </Button>
+                                          </TableCell>
+                                        </TableRow>
+                                      ),
+                                    )
                                   )}
                                 </TableBody>
                               </Table>
@@ -909,10 +963,11 @@ export default function CalificacionesPage() {
                               </span>
                               <span
                                 className={`text-lg font-bold ${getGradeColor(
-                                  student.dimensiones[dim].promedio
+                                  student.dimensiones[dim].promedio,
                                 )}`}
                               >
-                                {student.dimensiones[dim].promedio ?? "Sin calificar"}
+                                {student.dimensiones[dim].promedio ??
+                                  "Sin calificar"}
                               </span>
                             </div>
                           </TabsContent>
@@ -927,5 +982,5 @@ export default function CalificacionesPage() {
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }

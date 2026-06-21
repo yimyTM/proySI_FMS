@@ -1,10 +1,10 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { useTheme } from "next-themes"
+import { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useTheme } from "next-themes";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -12,8 +12,8 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { Badge } from "@/components/ui/badge"
+} from "@/components/ui/dropdown-menu";
+import { Badge } from "@/components/ui/badge";
 import {
   Search,
   Bell,
@@ -23,47 +23,52 @@ import {
   Settings,
   LogOut,
   Menu,
-} from "lucide-react"
-import { cn } from "@/lib/utils"
-import { logoutSession } from "@/lib/auth"
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+import { logoutSession } from "@/lib/auth";
 
 interface HeaderProps {
-  isCollapsed: boolean
-  isMobile: boolean
-  onMenuClick: () => void
+  isCollapsed: boolean;
+  isMobile: boolean;
+  onMenuClick: () => void;
 }
 
 export function Header({ isCollapsed, isMobile, onMenuClick }: HeaderProps) {
-  const { theme, setTheme } = useTheme()
-  const [mounted, setMounted] = useState(false)
+  const { theme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
   const [notifications] = useState([
     { id: 1, title: "Nuevo pago registrado", time: "Hace 5 min", read: false },
     { id: 2, title: "Estudiante inscrito", time: "Hace 1 hora", read: false },
-    { id: 3, title: "Stock bajo en materiales", time: "Hace 2 horas", read: true },
-  ])
+    {
+      id: 3,
+      title: "Stock bajo en materiales",
+      time: "Hace 2 horas",
+      read: true,
+    },
+  ]);
 
-  const [userName, setUserName] = useState("Usuario")
+  const [userName, setUserName] = useState("Usuario");
 
   useEffect(() => {
-    setMounted(true)
-    const name = localStorage.getItem("userName")
-    if (name) setUserName(name)
-  }, [])
+    setMounted(true);
+    const name = localStorage.getItem("userName");
+    if (name) setUserName(name);
+  }, []);
 
-  const isDark = mounted && theme === "dark"
+  const isDark = mounted && theme === "dark";
 
   const toggleTheme = () => {
-    setTheme(isDark ? "light" : "dark")
-  }
+    setTheme(isDark ? "light" : "dark");
+  };
 
-  const unreadCount = notifications.filter(n => !n.read).length
+  const unreadCount = notifications.filter((n) => !n.read).length;
 
   return (
     <header
       className={cn(
         "fixed top-0 z-30 flex h-16 items-center justify-between border-b border-border bg-background/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/60 transition-all duration-300",
         isMobile ? "left-0" : isCollapsed ? "md:left-[72px]" : "md:left-64",
-        "right-0"
+        "right-0",
       )}
     >
       <div className="flex items-center gap-4">
@@ -75,7 +80,7 @@ export function Header({ isCollapsed, isMobile, onMenuClick }: HeaderProps) {
         >
           <Menu className="h-5 w-5" />
         </Button>
-        
+
         {/* Search */}
         <div className="relative hidden lg:block">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -116,9 +121,7 @@ export function Header({ isCollapsed, isMobile, onMenuClick }: HeaderProps) {
             >
               <Bell className="h-5 w-5" />
               {unreadCount > 0 && (
-                <span
-                  className="absolute -right-1 -top-1 h-5 w-5 rounded-full bg-destructive text-destructive-foreground p-0 text-[10px] font-bold flex items-center justify-center border-2 border-background"
-                >
+                <span className="absolute -right-1 -top-1 h-5 w-5 rounded-full bg-destructive text-destructive-foreground p-0 text-[10px] font-bold flex items-center justify-center border-2 border-background">
                   {unreadCount}
                 </span>
               )}
@@ -136,14 +139,16 @@ export function Header({ isCollapsed, isMobile, onMenuClick }: HeaderProps) {
                 key={notification.id}
                 className={cn(
                   "flex flex-col items-start gap-1 p-3 cursor-pointer",
-                  !notification.read && "bg-muted/50"
+                  !notification.read && "bg-muted/50",
                 )}
               >
                 <div className="flex items-center gap-2">
                   {!notification.read && (
                     <div className="h-2 w-2 rounded-full bg-primary" />
                   )}
-                  <span className="font-medium text-sm">{notification.title}</span>
+                  <span className="font-medium text-sm">
+                    {notification.title}
+                  </span>
                 </div>
                 <span className="text-xs text-muted-foreground ml-4">
                   {notification.time}
@@ -160,10 +165,7 @@ export function Header({ isCollapsed, isMobile, onMenuClick }: HeaderProps) {
         {/* User Menu */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button
-              variant="ghost"
-              className="relative h-9 w-9 rounded-full"
-            >
+            <Button variant="ghost" className="relative h-9 w-9 rounded-full">
               <Avatar className="h-9 w-9">
                 <AvatarImage src="/placeholder-user.jpg" alt="Usuario" />
                 <AvatarFallback className="bg-primary text-primary-foreground">
@@ -191,7 +193,10 @@ export function Header({ isCollapsed, isMobile, onMenuClick }: HeaderProps) {
               Configuración
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="cursor-pointer text-destructive focus:text-destructive" onClick={logoutSession}>
+            <DropdownMenuItem
+              className="cursor-pointer text-destructive focus:text-destructive"
+              onClick={logoutSession}
+            >
               <LogOut className="mr-2 h-4 w-4" />
               Cerrar Sesión
             </DropdownMenuItem>
@@ -199,5 +204,5 @@ export function Header({ isCollapsed, isMobile, onMenuClick }: HeaderProps) {
         </DropdownMenu>
       </div>
     </header>
-  )
+  );
 }

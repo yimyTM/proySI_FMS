@@ -37,6 +37,7 @@ const validarAulaDisponible = async (req, res, next) => {
             WHERE c.id_aula = $1 
             AND c.turno = $2 
             AND c.id_gestion = $3
+            AND c.estado = true
         `;
     const params = [id_aula, turno, id_gestion];
 
@@ -75,6 +76,7 @@ const validarProfesorDisponible = async (req, res, next) => {
             WHERE c.id_profesor = $1 
             AND c.turno = $2 
             AND c.id_gestion = $3
+            AND c.estado = true
         `;
     const params = [id_profesor, turno, id_gestion];
 
@@ -101,26 +103,29 @@ const validarProfesorDisponible = async (req, res, next) => {
 };
 
 const validarCursoUnico = async (req, res, next) => {
-  const { id_grado, paralelo } = req.body;
+  // ✅ Incluir turno en la desestructuración
+  const { id_grado, paralelo, turno } = req.body;
   const id_gestion = req.gestionActiva?.id_gestion;
   const id_curso = req.params.id_curso;
 
-  // Si id_grado o paralelo no se enviaron (p.ej. en edición parcial), saltar
-  if (!id_grado || paralelo === undefined || paralelo === null) {
+  // Si falta algún dato necesario (en creación deben venir todos)
+  if (!id_grado || !paralelo || !turno) {
     return next();
   }
 
   try {
     let query = `
-            SELECT id_curso FROM curso 
-            WHERE id_grado = $1 
-            AND UPPER(paralelo) = UPPER($2)
-            AND id_gestion = $3
-        `;
-    const params = [id_grado, paralelo, id_gestion];
+      SELECT id_curso FROM curso 
+      WHERE id_grado = $1 
+        AND UPPER(paralelo) = UPPER($2)
+        AND id_gestion = $3
+        AND turno = $4
+
+    `;
+    const params = [id_grado, paralelo, id_gestion, turno];
 
     if (id_curso) {
-      query += ` AND id_curso != $4`;
+      query += ` AND id_curso != $5`;
       params.push(id_curso);
     }
 
@@ -128,7 +133,7 @@ const validarCursoUnico = async (req, res, next) => {
 
     if (result.rows.length > 0) {
       return res.status(409).json({
-        error: `Ya existe un curso con el grado y paralelo ${paralelo} en esta gestión`,
+        error: `Ya existe un curso con el grado, paralelo ${paralelo} y turno ${turno} en esta gestión`,
         code: "DUPLICATE_COURSE",
       });
     }

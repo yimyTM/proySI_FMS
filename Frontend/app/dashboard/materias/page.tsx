@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/dialog"
 import { BookOpen, Plus, AlertCircle, Bookmark } from "lucide-react"
 import { API_URL } from "@/lib/api"
+import { toast } from "sonner"
 
 export default function MateriasPage() {
   const [materias, setMaterias] = useState<any[]>([])
@@ -62,12 +63,16 @@ export default function MateriasPage() {
       const resCampos = await fetch(`${API_URL}/api/materias/campos`, { headers })
       const resMaterias = await fetch(`${API_URL}/api/materias`, { headers })
       
-      if (resCampos.ok && resMaterias.ok) {
-        setCampos(await resCampos.json())
-        setMaterias(await resMaterias.json())
-      }
+      const camposData = await resCampos.json().catch(() => null)
+      const materiasData = await resMaterias.json().catch(() => null)
+
+      if (!resCampos.ok) throw new Error(camposData?.message || "Error al cargar campos")
+      if (!resMaterias.ok) throw new Error(materiasData?.message || "Error al cargar materias")
+
+      setCampos(camposData)
+      setMaterias(materiasData)
     } catch (error) {
-      console.error("Error fetching data:", error)
+      toast.error(error instanceof Error ? error.message : "Error al cargar datos")
     } finally {
       setIsLoading(false)
     }
@@ -103,7 +108,9 @@ export default function MateriasPage() {
       setCampoData({ nombre_campo: "", orden_visualizacion: 1 })
       fetchData()
     } catch (error) {
-      setFormError("Error de conexión.")
+      const message = error instanceof Error ? error.message : "Error de conexión."
+      setFormError(message)
+      toast.error(message)
     }
   }
 
@@ -140,7 +147,9 @@ export default function MateriasPage() {
       setMateriaData({ nombre_materia: "", descripcion: "", id_campo: "", aplica_primaria: true, estado: true })
       fetchData()
     } catch (error) {
-      setFormError("Error de conexión.")
+      const message = error instanceof Error ? error.message : "Error de conexión."
+      setFormError(message)
+      toast.error(message)
     }
   }
 

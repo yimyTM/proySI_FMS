@@ -25,12 +25,14 @@ import {
 import { CalendarCheck, Plus, AlertCircle, PlayCircle, Lock } from "lucide-react"
 import { format } from "date-fns"
 import { API_URL } from "@/lib/api"
+import { toast } from "sonner"
 
 export default function GestionesPage() {
   const [gestiones, setGestiones] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [formError, setFormError] = useState("")
+  const [fieldErrors, setFieldErrors] = useState<{ anio?: string; fecha_inicio?: string; fecha_fin?: string }>({})
 
   // Form states
   const [formData, setFormData] = useState({
@@ -38,6 +40,54 @@ export default function GestionesPage() {
     fecha_inicio: "",
     fecha_fin: ""
   })
+
+  const updateFormData = (field: keyof typeof formData, value: string | number) => {
+    setFormData((current) => ({ ...current, [field]: value }))
+    setFieldErrors((current) => {
+      if (!current[field]) return current
+      const next = { ...current }
+      delete next[field]
+      return next
+    })
+    setFormError("")
+  }
+
+  const validateCreateForm = () => {
+    const errors: typeof fieldErrors = {}
+
+    if (!formData.anio) errors.anio = "Año de gestión es obligatorio."
+    if (!formData.fecha_inicio) errors.fecha_inicio = "Fecha Oficial Inicial es obligatoria."
+    if (!formData.fecha_fin) errors.fecha_fin = "Fecha Oficial de Cierre es obligatoria."
+
+    if (formData.fecha_inicio && formData.fecha_fin && formData.fecha_inicio > formData.fecha_fin) {
+      errors.fecha_inicio = "La fecha inicial no puede ser posterior a la fecha de cierre."
+      errors.fecha_fin = "La fecha de cierre debe ser igual o posterior a la fecha inicial."
+    }
+
+    setFieldErrors(errors)
+
+    const firstError = errors.anio || errors.fecha_inicio || errors.fecha_fin
+    if (firstError) {
+      setFormError(firstError)
+      toast.error(firstError)
+      return false
+    }
+
+    return true
+  }
+
+  const fieldClass = (field: keyof typeof fieldErrors) =>
+    fieldErrors[field]
+      ? "border-destructive focus-visible:ring-destructive/30"
+      : undefined
+
+  const FieldError = ({ field }: { field: keyof typeof fieldErrors }) =>
+    fieldErrors[field] ? (
+      <p className="flex items-center gap-1 text-xs text-destructive">
+        <AlertCircle className="h-3.5 w-3.5" />
+        {fieldErrors[field]}
+      </p>
+    ) : null
 
   useEffect(() => {
     fetchData()
@@ -51,11 +101,12 @@ export default function GestionesPage() {
       
       const res = await fetch(`${API_URL}/api/gestiones`, { headers })
       
-      if (res.ok) {
-        setGestiones(await res.json())
-      }
+      const data = await res.json().catch(() => null)
+      if (!res.ok) throw new Error(data?.message || "Error al cargar gestiones")
+
+      setGestiones(data)
     } catch (error) {
-      console.error("Error fetching data:", error)
+      toast.error(error instanceof Error ? error.message : "Error al cargar gestiones")
     } finally {
       setIsLoading(false)
     }
@@ -64,11 +115,7 @@ export default function GestionesPage() {
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault()
     setFormError("")
-    
-    if (!formData.anio || !formData.fecha_inicio || !formData.fecha_fin) {
-      setFormError("Año y Fechas son obligatorios.")
-      return
-    }
+    if (!validateCreateForm()) return
 
     try {
       const token = localStorage.getItem("token")
@@ -83,14 +130,19 @@ export default function GestionesPage() {
 
       const data = await res.json()
       if (!res.ok) {
-        setFormError(data.message || "Error al crear gestión")
+        const message = data.message || "Error al crear gestión"
+        setFormError(message)
+        toast.error(message)
         return
       }
 
       setIsCreateOpen(false)
+      setFieldErrors({})
       fetchData()
     } catch (error) {
-      setFormError("Error de conexión.")
+      const message = error instanceof Error ? error.message : "Error de conexión."
+      setFormError(message)
+      toast.error(message)
     }
   }
 
@@ -115,12 +167,13 @@ export default function GestionesPage() {
 
       const data = await res.json()
       if (!res.ok) {
-        alert(data.message)
+        throw new Error(data.message || "Error al cambiar el estado de la gestión")
       } else {
+        toast.success(data.message || "Estado actualizado correctamente")
         fetchData()
       }
     } catch (error) {
-      console.error(error)
+      toast.error(error instanceof Error ? error.message : "Error al cambiar el estado de la gestión")
     }
   }
 
@@ -146,7 +199,13 @@ export default function GestionesPage() {
           </p>
         </div>
         
-        <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+        <Dialog open={isCreateOpen} onOpenChange={(open) => {
+          setIsCreateOpen(open)
+          if (!open) {
+            setFormError("")
+            setFieldErrors({})
+          }
+        }}>
           <DialogTrigger asChild>
             <Button className="shrink-0 gap-2">
               <Plus className="h-4 w-4" /> Aperturar Gestión
@@ -173,8 +232,11 @@ export default function GestionesPage() {
                   min="2000"
                   max="2050"
                   value={formData.anio}
-                  onChange={(e) => setFormData({...formData, anio: parseInt(e.target.value)})}
+                  onChange={(e) => updateFormData("anio", parseInt(e.target.value))}
+                  className={fieldClass("anio")}
+                  aria-invalid={Boolean(fieldErrors.anio)}
                 />
+                <FieldError field="anio" />
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
@@ -182,16 +244,22 @@ export default function GestionesPage() {
                   <Input 
                     type="date"
                     value={formData.fecha_inicio}
-                    onChange={(e) => setFormData({...formData, fecha_inicio: e.target.value})}
+                    onChange={(e) => updateFormData("fecha_inicio", e.target.value)}
+                    className={fieldClass("fecha_inicio")}
+                    aria-invalid={Boolean(fieldErrors.fecha_inicio)}
                   />
+                  <FieldError field="fecha_inicio" />
                 </div>
                 <div className="space-y-2">
                   <Label>Fecha Oficial de Cierre *</Label>
                   <Input 
                     type="date"
                     value={formData.fecha_fin}
-                    onChange={(e) => setFormData({...formData, fecha_fin: e.target.value})}
+                    onChange={(e) => updateFormData("fecha_fin", e.target.value)}
+                    className={fieldClass("fecha_fin")}
+                    aria-invalid={Boolean(fieldErrors.fecha_fin)}
                   />
+                  <FieldError field="fecha_fin" />
                 </div>
               </div>
               <DialogFooter className="pt-4">

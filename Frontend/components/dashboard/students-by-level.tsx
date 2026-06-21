@@ -1,6 +1,6 @@
-"use client"
+"use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   PieChart,
   Pie,
@@ -8,16 +8,16 @@ import {
   ResponsiveContainer,
   Legend,
   Tooltip,
-} from "recharts"
+} from "recharts";
 
 const data = [
-  { name: "Pre-Kinder", value: 45, color: "hsl(var(--chart-1))" },
-  { name: "Kinder", value: 62, color: "hsl(var(--chart-2))" },
-  { name: "Primaria", value: 180, color: "hsl(var(--chart-4))" },
-]
+  { name: "Pre-Kinder", value: 45, color: "var(--chart-1))" },
+  { name: "Kinder", value: 62, color: "var(--chart-2)" },
+  { name: "Primaria", value: 180, color: "var(--chart-4)" },
+];
 
 export function StudentsByLevel() {
-  const total = data.reduce((acc, item) => acc + item.value, 0)
+  const total = data.reduce((acc, item) => acc + item.value, 0);
 
   return (
     <Card className="h-full">
@@ -57,8 +57,8 @@ export function StudentsByLevel() {
                 iconSize={8}
                 wrapperStyle={{ fontSize: "12px" }}
                 formatter={(value, entry) => {
-                  const item = data.find((d) => d.name === value)
-                  return `${value} (${item?.value})`
+                  const item = data.find((d) => d.name === value);
+                  return `${value} (${item?.value})`;
                 }}
               />
             </PieChart>
@@ -70,5 +70,5 @@ export function StudentsByLevel() {
         </div>
       </CardContent>
     </Card>
-  )
+  );
 }

@@ -1,21 +1,21 @@
-"use client"
+"use client";
 
-import { Button } from "@/components/ui/button"
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card"
+} from "@/components/ui/card";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select"
-import { Badge } from "@/components/ui/badge"
+} from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
 import {
   FileText,
   Download,
@@ -27,7 +27,7 @@ import {
   BarChart3,
   Calendar,
   Printer,
-} from "lucide-react"
+} from "lucide-react";
 
 const reportTypes = [
   {
@@ -84,7 +84,7 @@ const reportTypes = [
     bg: "bg-muted",
     formats: ["PDF"],
   },
-]
+];
 
 export default function ReportesPage() {
   return (
@@ -157,40 +157,43 @@ export default function ReportesPage() {
       {/* Report Types Grid */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {reportTypes.map((report) => {
-          const IconComponent = report.icon
+          const IconComponent = report.icon;
           return (
-          <Card key={report.id} className="group hover:shadow-md transition-shadow">
-            <CardHeader className="pb-3">
-              <div className="flex items-start justify-between">
-                <div
-                  className={`flex h-12 w-12 items-center justify-center rounded-xl ${report.bg}`}
-                >
-                  <IconComponent className={`h-6 w-6 ${report.color}`} />
+            <Card
+              key={report.id}
+              className="group hover:shadow-md transition-shadow"
+            >
+              <CardHeader className="pb-3">
+                <div className="flex items-start justify-between">
+                  <div
+                    className={`flex h-12 w-12 items-center justify-center rounded-xl ${report.bg}`}
+                  >
+                    <IconComponent className={`h-6 w-6 ${report.color}`} />
+                  </div>
+                  <div className="flex gap-1">
+                    {report.formats.map((format) => (
+                      <Badge key={format} variant="outline" className="text-xs">
+                        {format}
+                      </Badge>
+                    ))}
+                  </div>
                 </div>
-                <div className="flex gap-1">
-                  {report.formats.map((format) => (
-                    <Badge key={format} variant="outline" className="text-xs">
-                      {format}
-                    </Badge>
-                  ))}
+                <CardTitle className="text-lg mt-4">{report.title}</CardTitle>
+                <CardDescription>{report.description}</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex gap-2">
+                  <Button className="flex-1 gap-2" size="sm">
+                    <Download className="h-4 w-4" />
+                    Descargar
+                  </Button>
+                  <Button variant="outline" size="sm">
+                    <Printer className="h-4 w-4" />
+                  </Button>
                 </div>
-              </div>
-              <CardTitle className="text-lg mt-4">{report.title}</CardTitle>
-              <CardDescription>{report.description}</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex gap-2">
-                <Button className="flex-1 gap-2" size="sm">
-                  <Download className="h-4 w-4" />
-                  Descargar
-                </Button>
-                <Button variant="outline" size="sm">
-                  <Printer className="h-4 w-4" />
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-          )
+              </CardContent>
+            </Card>
+          );
         })}
       </div>
 
@@ -260,5 +263,5 @@ export default function ReportesPage() {
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }

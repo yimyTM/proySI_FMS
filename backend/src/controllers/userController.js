@@ -6,7 +6,7 @@ const createUser = async (req, res) => {
     const { username, password, id_rol, estado, email } = req.body;
 
     if (!username || !password || !id_rol || !email) {
-        return res.status(400).json({ message: 'Todos los campos obligatorios (username, password, id_rol) deben estar llenos' });
+        return res.status(400).json({ message: 'Todos los campos obligatorios (username, email, password e id_rol) deben estar llenos.' });
     }
 
     const passwordValidation = validatePasswordStrength(password);
@@ -19,12 +19,12 @@ const createUser = async (req, res) => {
             [username, email]
         );
         if (usuarioExistente.rows.length > 0) {
-            return res.status(409).json({ message: 'El nombre de usuario o el correo electronico ya esta en uso' });
+            return res.status(409).json({ message: 'El nombre de usuario o el correo electrónico ya está en uso.' });
         }
 
         const rolExistente = await pool.query('SELECT id_rol FROM rol WHERE id_rol = $1', [id_rol]);
         if (rolExistente.rows.length === 0) {
-            return res.status(400).json({ message: 'El rol especificado no existe en el sistema' });
+            return res.status(400).json({ message: 'El rol especificado no existe en el sistema.' });
         }
 
         const salt = await bcrypt.genSalt(10);
@@ -38,11 +38,11 @@ const createUser = async (req, res) => {
         );
 
         res.status(201).json({
-            message: 'Usuario creado con exito',
+            message: 'Usuario creado con éxito.',
             user: newUser.rows[0]
         });
     } catch (error) {
-        res.status(500).json({ message: 'Error al crear el usuario', error: error.message });
+        res.status(500).json({ message: 'Error al crear el usuario.', error: error.message });
     }
 }
 
@@ -56,7 +56,7 @@ const getUsers = async (req, res) => {
             `);
         res.json(usuario.rows);
     } catch (error) {
-        res.status(500).json({ message: 'Error al obtener Usuarios', error: error.message });
+        res.status(500).json({ message: 'Error al obtener usuarios.', error: error.message });
     }
 }
 
@@ -65,14 +65,14 @@ const updateUser = async (req, res) => {
     const { username, id_rol, estado, email } = req.body;
 
     if (!username || !id_rol || estado === undefined || !email) {
-        return res.status(400).json({ message: 'Deben enviar username, email, id_rol y estado para actualizar el usuario' });
+        return res.status(400).json({ message: 'Debe enviar username, email, id_rol y estado para actualizar el usuario.' });
     }
 
     try {
 
         const usuarioExistente = await pool.query('SELECT id_usuario FROM usuario WHERE (username = $1 OR email = $2) AND id_usuario != $3', [username, email, id]);
         if (usuarioExistente.rows.length > 0) {
-            return res.status(400).json({ message: 'El nombre de usuario o email ya esta en uso por otra cuenta' });
+            return res.status(400).json({ message: 'El nombre de usuario o correo electrónico ya está en uso por otra cuenta.' });
         }
 
         const updatedUser = await pool.query(
@@ -80,11 +80,11 @@ const updateUser = async (req, res) => {
             [username, email, id_rol, estado, id]
         );
 
-        if (updatedUser.rows.length == 0) return res.status(404).json({ message: 'Usuario no encontrado' });
+        if (updatedUser.rows.length == 0) return res.status(404).json({ message: 'Usuario no encontrado.' });
 
-        res.json({ message: 'El usuario se actualizo correctamente', user: updatedUser.rows[0] });
+        res.json({ message: 'El usuario se actualizó correctamente.', user: updatedUser.rows[0] });
     } catch (error) {
-        res.status(500).json({ message: 'Error al actualizar el usuario', error: error.message });
+        res.status(500).json({ message: 'Error al actualizar el usuario.', error: error.message });
     }
 }
 
@@ -95,11 +95,11 @@ const deleteUser = async (req, res) => {
             'UPDATE usuario SET estado = false WHERE id_usuario = $1 RETURNING id_usuario, username, estado',
             [id]);
 
-        if (desactivedUser.rows.length == 0) return res.status(404).json({ message: 'Usuario no encontrado xd' });
+        if (desactivedUser.rows.length == 0) return res.status(404).json({ message: 'Usuario no encontrado.' });
 
-        res.json({ message: 'Usuario desactivado correctamente', user: desactivedUser.rows[0] });
+        res.json({ message: 'Usuario desactivado correctamente.', user: desactivedUser.rows[0] });
     } catch (error) {
-        res.status(500).json({ message: 'Error al desactivar el usuario', error: error.message });
+        res.status(500).json({ message: 'Error al desactivar el usuario.', error: error.message });
     }
 }
 

@@ -13,7 +13,6 @@ next.user-config.*
 .env*.local
 !.env.example
 
-# Common ignores
 node_modules/
 .next/
 out/

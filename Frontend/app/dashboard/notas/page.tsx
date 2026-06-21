@@ -1,15 +1,15 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card"
+} from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -17,17 +17,17 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table"
+} from "@/components/ui/table";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select"
-import { Badge } from "@/components/ui/badge"
-import { Progress } from "@/components/ui/progress"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+} from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Save,
   FileText,
@@ -36,22 +36,22 @@ import {
   ClipboardList,
   Calculator,
   Info,
-} from "lucide-react"
+} from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from "@/components/ui/tooltip"
+} from "@/components/ui/tooltip";
 
 interface StudentGrade {
-  id: number
-  name: string
-  ser: number | null
-  saber: number | null
-  hacer: number | null
-  autoevaluacion: number | null
-  total: number | null
+  id: number;
+  name: string;
+  ser: number | null;
+  saber: number | null;
+  hacer: number | null;
+  autoevaluacion: number | null;
+  total: number | null;
 }
 
 const students: StudentGrade[] = [
@@ -100,7 +100,7 @@ const students: StudentGrade[] = [
     autoevaluacion: 100,
     total: null,
   },
-]
+];
 
 // Calcula el promedio ponderado según el sistema boliviano
 function calculateTotal(grade: StudentGrade): number | null {
@@ -110,31 +110,34 @@ function calculateTotal(grade: StudentGrade): number | null {
     grade.hacer === null ||
     grade.autoevaluacion === null
   ) {
-    return null
+    return null;
   }
   // Ser: 10%, Saber: 45%, Hacer: 40%, Autoevaluación: 5%
   return Math.round(
-    grade.ser * 0.1 + grade.saber * 0.45 + grade.hacer * 0.4 + grade.autoevaluacion * 0.05
-  )
+    grade.ser * 0.1 +
+      grade.saber * 0.45 +
+      grade.hacer * 0.4 +
+      grade.autoevaluacion * 0.05,
+  );
 }
 
 function getGradeColor(grade: number | null): string {
-  if (grade === null) return "text-muted-foreground"
-  if (grade >= 90) return "text-success"
-  if (grade >= 70) return "text-primary"
-  if (grade >= 51) return "text-warning-foreground"
-  return "text-destructive"
+  if (grade === null) return "text-muted-foreground";
+  if (grade >= 90) return "text-success";
+  if (grade >= 70) return "text-primary";
+  if (grade >= 51) return "text-warning-foreground";
+  return "text-destructive";
 }
 
 export default function NotasPage() {
-  const [selectedGrade, setSelectedGrade] = useState("3A")
-  const [selectedSubject, setSelectedSubject] = useState("matematicas")
-  const [selectedTrimester, setSelectedTrimester] = useState("1")
+  const [selectedGrade, setSelectedGrade] = useState("3A");
+  const [selectedSubject, setSelectedSubject] = useState("matematicas");
+  const [selectedTrimester, setSelectedTrimester] = useState("1");
 
   const studentsWithTotal = students.map((student) => ({
     ...student,
     total: calculateTotal(student),
-  }))
+  }));
 
   const averageTotal =
     studentsWithTotal.filter((s) => s.total !== null).length > 0
@@ -142,12 +145,14 @@ export default function NotasPage() {
           studentsWithTotal
             .filter((s) => s.total !== null)
             .reduce((acc, s) => acc + (s.total || 0), 0) /
-            studentsWithTotal.filter((s) => s.total !== null).length
+            studentsWithTotal.filter((s) => s.total !== null).length,
         )
-      : 0
+      : 0;
 
-  const studentsWithGrades = studentsWithTotal.filter((s) => s.total !== null).length
-  const totalStudents = studentsWithTotal.length
+  const studentsWithGrades = studentsWithTotal.filter(
+    (s) => s.total !== null,
+  ).length;
+  const totalStudents = studentsWithTotal.length;
 
   return (
     <div className="space-y-6">
@@ -179,7 +184,9 @@ export default function NotasPage() {
           <div className="flex items-start gap-3">
             <Info className="h-5 w-5 text-primary shrink-0 mt-0.5" />
             <div className="text-sm">
-              <p className="font-medium text-primary">Sistema de Calificación Boliviano</p>
+              <p className="font-medium text-primary">
+                Sistema de Calificación Boliviano
+              </p>
               <p className="text-muted-foreground mt-1">
                 <strong>Ser (10%):</strong> Actitud y valores |{" "}
                 <strong>Saber (45%):</strong> Conocimientos teóricos |{" "}
@@ -217,7 +224,10 @@ export default function NotasPage() {
             </div>
             <div className="flex-1 min-w-0">
               <label className="text-sm font-medium mb-2 block">Materia</label>
-              <Select value={selectedSubject} onValueChange={setSelectedSubject}>
+              <Select
+                value={selectedSubject}
+                onValueChange={setSelectedSubject}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Seleccionar materia" />
                 </SelectTrigger>
@@ -227,15 +237,22 @@ export default function NotasPage() {
                   <SelectItem value="ciencias">Ciencias Naturales</SelectItem>
                   <SelectItem value="sociales">Ciencias Sociales</SelectItem>
                   <SelectItem value="ingles">Inglés</SelectItem>
-                  <SelectItem value="educacion_fisica">Educación Física</SelectItem>
+                  <SelectItem value="educacion_fisica">
+                    Educación Física
+                  </SelectItem>
                   <SelectItem value="artes">Artes Plásticas</SelectItem>
                   <SelectItem value="musica">Música</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div className="flex-1 min-w-0">
-              <label className="text-sm font-medium mb-2 block">Trimestre</label>
-              <Select value={selectedTrimester} onValueChange={setSelectedTrimester}>
+              <label className="text-sm font-medium mb-2 block">
+                Trimestre
+              </label>
+              <Select
+                value={selectedTrimester}
+                onValueChange={setSelectedTrimester}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Seleccionar trimestre" />
                 </SelectTrigger>
@@ -268,7 +285,9 @@ export default function NotasPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Con notas</p>
-                <p className="text-2xl font-bold text-success">{studentsWithGrades}</p>
+                <p className="text-2xl font-bold text-success">
+                  {studentsWithGrades}
+                </p>
               </div>
               <ClipboardList className="h-8 w-8 text-success/50" />
             </div>
@@ -292,7 +311,9 @@ export default function NotasPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Promedio</p>
-                <p className={`text-2xl font-bold ${getGradeColor(averageTotal)}`}>
+                <p
+                  className={`text-2xl font-bold ${getGradeColor(averageTotal)}`}
+                >
                   {averageTotal}
                 </p>
               </div>
@@ -321,12 +342,38 @@ export default function NotasPage() {
               <div key={student.id} className="rounded-lg border p-4 space-y-2">
                 <p className="font-medium">{student.name}</p>
                 <div className="grid grid-cols-2 gap-2 text-sm">
-                  <Input type="number" min="0" max="100" defaultValue={student.ser ?? ""} placeholder="Ser" />
-                  <Input type="number" min="0" max="100" defaultValue={student.saber ?? ""} placeholder="Saber" />
-                  <Input type="number" min="0" max="100" defaultValue={student.hacer ?? ""} placeholder="Hacer" />
-                  <Input type="number" min="0" max="100" defaultValue={student.autoevaluacion ?? ""} placeholder="Auto" />
+                  <Input
+                    type="number"
+                    min="0"
+                    max="100"
+                    defaultValue={student.ser ?? ""}
+                    placeholder="Ser"
+                  />
+                  <Input
+                    type="number"
+                    min="0"
+                    max="100"
+                    defaultValue={student.saber ?? ""}
+                    placeholder="Saber"
+                  />
+                  <Input
+                    type="number"
+                    min="0"
+                    max="100"
+                    defaultValue={student.hacer ?? ""}
+                    placeholder="Hacer"
+                  />
+                  <Input
+                    type="number"
+                    min="0"
+                    max="100"
+                    defaultValue={student.autoevaluacion ?? ""}
+                    placeholder="Auto"
+                  />
                 </div>
-                <p className={`font-bold ${getGradeColor(student.total)}`}>Total: {student.total ?? "-"}</p>
+                <p className={`font-bold ${getGradeColor(student.total)}`}>
+                  Total: {student.total ?? "-"}
+                </p>
               </div>
             ))}
           </div>
@@ -393,7 +440,9 @@ export default function NotasPage() {
               <TableBody>
                 {studentsWithTotal.map((student) => (
                   <TableRow key={student.id}>
-                    <TableCell className="font-medium">{student.name}</TableCell>
+                    <TableCell className="font-medium">
+                      {student.name}
+                    </TableCell>
                     <TableCell className="text-center">
                       <Input
                         type="number"
@@ -449,5 +498,5 @@ export default function NotasPage() {
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }

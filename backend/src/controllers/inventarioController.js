@@ -176,7 +176,7 @@ const registrarMovimiento = async (req, res) => {
     const { id_material, tipo_movimiento, cantidad, observaciones } = req.body;
 
     if (!id_material || !['entrada', 'salida'].includes(tipo_movimiento) || !Number(cantidad)) {
-        return res.status(400).json({ message: 'Material, tipo y cantidad valida son obligatorios' });
+        return res.status(400).json({ message: 'Material, tipo y cantidad válida son obligatorios.' });
     }
 
     try {

@@ -1,5 +1,31 @@
 const pool = require("../config/db");
 
+const validarProfesorUnico = async (
+  id_profesor,
+  id_gestion,
+  turno,
+  id_curso_omitir = null,
+) => {
+  let query = `
+        SELECT id_curso, paralelo, g.nombre_grado
+        FROM curso c
+        JOIN grado g ON c.id_grado = g.id_grado
+        WHERE id_profesor = $1 AND id_gestion = $2 AND turno = $3
+    `;
+  const params = [id_profesor, id_gestion, turno];
+  if (id_curso_omitir) {
+    query += ` AND id_curso != $4`;
+    params.push(id_curso_omitir);
+  }
+  const result = await pool.query(query, params);
+  if (result.rows.length > 0) {
+    const cursoExistente = result.rows[0];
+    throw new Error(
+      `El profesor ya es titular del curso ${cursoExistente.nombre_grado} ${cursoExistente.paralelo} en el turno ${turno}`,
+    );
+  }
+};
+
 // ========== CU08: Crear Curso ==========
 const crearCurso = async (req, res) => {
   const { id_grado, paralelo, id_aula, id_profesor, turno } = req.body;
@@ -8,6 +34,8 @@ const crearCurso = async (req, res) => {
   const id_gestion = req.gestionActiva.id_gestion;
 
   try {
+    await validarProfesorUnico(id_profesor, id_gestion, turno);
+
     const result = await pool.query(
       `INSERT INTO curso (id_grado, paralelo, id_aula, id_gestion, id_profesor, turno, estado)
              VALUES ($1, UPPER($2), $3, $4, $5, $6, true)
@@ -258,6 +286,20 @@ const editarCurso = async (req, res) => {
   const tieneInscripciones = req.tieneInscripciones || false;
 
   try {
+    const cursoActual = await pool.query(
+      `SELECT id_gestion, turno FROM curso WHERE id_curso = $1`,
+      [id_curso],
+    );
+    if (cursoActual.rows.length === 0) {
+      return res.status(404).json({ error: "Curso no encontrado" });
+    }
+    const { id_gestion, turno: turnoActual } = cursoActual.rows[0];
+
+    if (id_profesor) {
+      const turnoFinal = turno || turnoActual;
+      await validarProfesorUnico(id_profesor, id_gestion, turnoFinal, id_curso);
+    }
+
     let query = "UPDATE curso SET ";
     const updates = [];
     const params = [];
@@ -273,7 +315,7 @@ const editarCurso = async (req, res) => {
         params.push(turno);
       }
     } else {
-      // Edición completa
+      // Edición completa (sin inscripciones)
       if (id_aula) {
         updates.push(`id_aula = $${paramIndex++}`);
         params.push(id_aula);
@@ -311,6 +353,9 @@ const editarCurso = async (req, res) => {
     });
   } catch (error) {
     console.error("Error en editarCurso:", error);
+    if (error.message.includes("El profesor ya es titular")) {
+      return res.status(409).json({ error: error.message });
+    }
     res.status(500).json({ error: "Error interno del servidor" });
   }
 };
@@ -334,7 +379,6 @@ const duplicarCurso = async (req, res) => {
 
     const original = cursoOriginal.rows[0];
 
-    // Crear nuevo curso sin paralelo y sin profesor
     const result = await pool.query(
       `INSERT INTO curso (id_grado, paralelo, id_aula, id_gestion, id_profesor, turno, estado)
              VALUES ($1, '', $2, $3, NULL, $4, true)
@@ -351,7 +395,7 @@ const duplicarCurso = async (req, res) => {
 
     res.status(201).json({
       message:
-        "Curso duplicado exitosamente. Complete el paralelo y asigne un profesor titular.",
+        "Curso duplicado correctamente. Complete el paralelo y asigne un profesor titular.",
       nuevo_curso_id: nuevoCursoId,
       datos_precargados: {
         id_grado: original.id_grado,
@@ -397,7 +441,6 @@ const eliminarCurso = async (req, res) => {
       });
     }
 
-    // En lugar de eliminar físicamente, desactivar el curso
     await pool.query("UPDATE curso SET estado = false WHERE id_curso = $1", [
       id_curso,
     ]);

@@ -29,6 +29,7 @@ import { UserCog, Plus, MoreHorizontal, Edit, UserX, AlertCircle, Mail } from "l
 import { format } from "date-fns"
 import { API_URL } from "@/lib/api"
 import { PASSWORD_HINT, validatePasswordStrength } from "@/lib/password-policy"
+import { toast } from "sonner"
 
 export default function UsuariosPage() {
   const [usuarios, setUsuarios] = useState<any[]>([])
@@ -63,12 +64,16 @@ export default function UsuariosPage() {
       const resUsers = await fetch(`${API_URL}/api/users`, { headers })
       const resRoles = await fetch(`${API_URL}/api/roles`, { headers })
       
-      if (resUsers.ok && resRoles.ok) {
-        setUsuarios(await resUsers.json())
-        setRoles(await resRoles.json())
-      }
+      const usersData = await resUsers.json().catch(() => null)
+      const rolesData = await resRoles.json().catch(() => null)
+
+      if (!resUsers.ok) throw new Error(usersData?.message || "Error al cargar usuarios")
+      if (!resRoles.ok) throw new Error(rolesData?.message || "Error al cargar roles")
+
+      setUsuarios(usersData)
+      setRoles(rolesData)
     } catch (error) {
-      console.error("Error fetching data:", error)
+      toast.error(error instanceof Error ? error.message : "Error al cargar datos")
     } finally {
       setIsLoading(false)
     }
@@ -114,7 +119,9 @@ export default function UsuariosPage() {
       resetForm()
       fetchData()
     } catch (error) {
-      setFormError("Error de conexión.")
+      const message = error instanceof Error ? error.message : "Error de conexión."
+      setFormError(message)
+      toast.error(message)
     }
   }
 
@@ -152,7 +159,9 @@ export default function UsuariosPage() {
       setIsEditOpen(false)
       fetchData()
     } catch (error) {
-      setFormError("Error de conexión.")
+      const message = error instanceof Error ? error.message : "Error de conexión."
+      setFormError(message)
+      toast.error(message)
     }
   }
 
@@ -165,14 +174,13 @@ export default function UsuariosPage() {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` }
       })
-      if (res.ok) {
-        fetchData()
-      } else {
-        const data = await res.json()
-        alert(data.message)
-      }
+      const data = await res.json().catch(() => null)
+      if (!res.ok) throw new Error(data?.message || "Error al desactivar usuario")
+
+      toast.success(data?.message || "Usuario desactivado correctamente")
+      fetchData()
     } catch (error) {
-      console.error(error)
+      toast.error(error instanceof Error ? error.message : "Error al desactivar usuario")
     }
   }
 

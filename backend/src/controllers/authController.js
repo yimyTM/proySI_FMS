@@ -45,18 +45,18 @@ const login = async (req, res) => {
     try {
         const userResult = await pool.query('SELECT * FROM usuario WHERE username = $1 OR email = $1', [username]);
         if (userResult.rows.length === 0) {
-            return res.status(401).json({ message: 'Usuario o Contraseña invalidos' });
+            return res.status(401).json({ message: 'Usuario o contraseña inválidos..' });
         }
 
         const user = userResult.rows[0];
 
         if (!user.estado) {
-            return res.status(403).json({ message: 'Cuenta desactivada, contacte con el administrador' });
+            return res.status(403).json({ message: 'Cuenta desactivada. Contacte con el administrador.' });
         }
 
         if (user.bloqueado_hasta && new Date(user.bloqueado_hasta) > new Date()) {
             return res.status(403).json({
-                message: 'Cuenta bloqueada temporalmente por multiples intentos fallidos. Intente mas tarde'
+                message: 'Cuenta bloqueada temporalmente por múltiples intentos fallidos. Intente más tarde.'
             });
         }
 
@@ -75,7 +75,7 @@ const login = async (req, res) => {
                 [intentos, bloqueado_hasta, user.id_usuario]
             );
 
-            return res.status(401).json({ message: 'Usuario o Contraseña invalidos' });
+            return res.status(401).json({ message: 'Usuario o contraseña inválidos.' });
         }
 
         await pool.query(
@@ -91,7 +91,7 @@ const login = async (req, res) => {
             accion: 'LOGIN',
             tabla_afectada: 'usuario',
             id_registro_afectado: user.id_usuario,
-            descripcion: `Inicio de sesion de ${user.username}`,
+            descripcion: `Inicio de sesión de ${user.username}`,
             ip_origen: getClientIp(req)
         });
 
@@ -112,16 +112,33 @@ const login = async (req, res) => {
             ORDER BY m.nombre_modulo, f.metodo
         `, [user.id_rol]);
 
+        const rolNombreResult = await pool.query(
+            'SELECT nombre_rol FROM rol WHERE id_rol = $1',
+            [user.id_rol]
+        );
+        const nombre_rol = rolNombreResult.rows[0]?.nombre_rol || '';
+
+        let id_estudiante = null;
+        if (nombre_rol === 'Estudiante') {
+            const estResult = await pool.query(
+                'SELECT id_estudiante FROM estudiante WHERE id_usuario = $1',
+                [user.id_usuario]
+            );
+            id_estudiante = estResult.rows[0]?.id_estudiante || null;
+        }
+
         const token = jwt.sign(
-            { id: user.id_usuario, role: user.id_rol },
+            { id: user.id_usuario, role: user.id_rol, nombre_rol, id_estudiante },
             process.env.JWT_SECRET,
             { expiresIn: '2h' }
-        )
+        );
 
         res.json({
-            message: 'Inicio de sesion exitoso gogo',
+            message: 'Inicio de sesión exitoso.',
             token,
             role: user.id_rol,
+            nombre_rol,
+            id_estudiante,
             funcionalidades: funcionalidadesResult.rows
         });
 
@@ -165,7 +182,7 @@ const forgotPassword = async (req, res) => {
         await transporter.sendMail({
             from: '"Soporte Fausto Medrano" <soporte@colegio.com>',
             to: email,
-            subject: "Recuperación de Contraseña",
+            subject: "Recuperación de contraseña",
             html: `<b>Hola ${user.username},</b><br>Haz clic en el siguiente enlace para restablecer tu clave: <a href="${resetLink}">Restablecer clave</a>. Expira en 15 minutos.`
         });
 
@@ -228,12 +245,12 @@ const logout = async (req, res) => {
             accion: 'LOGOUT',
             tabla_afectada: 'usuario',
             id_registro_afectado: req.usuario.id,
-            descripcion: 'Cierre de sesion',
+            descripcion: 'Cierre de sesión',
             ip_origen: getClientIp(req)
         });
     }
 
-    res.json({ message: 'Cierre de sesion existoso. Se debe eliminar el token en el cliente (front) eso hace yimy' })
+    res.json({ message: 'Cierre de sesión exitoso.' })
 }
 
 module.exports = { me, login, forgotPassword, resetPassword, logout };

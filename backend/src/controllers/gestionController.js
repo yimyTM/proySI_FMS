@@ -1,11 +1,30 @@
-const e = require('express');
 const pool = require('../config/db');
+
+const validarRangoFechasGestion = (fecha_inicio, fecha_fin) => {
+    const inicio = new Date(`${fecha_inicio}T00:00:00`);
+    const fin = new Date(`${fecha_fin}T00:00:00`);
+
+    if (Number.isNaN(inicio.getTime()) || Number.isNaN(fin.getTime())) {
+        return 'Las fechas ingresadas no son válidas.';
+    }
+
+    if (inicio > fin) {
+        return 'La fecha de inicio no puede ser posterior a la fecha de cierre.';
+    }
+
+    return null;
+};
 
 const createGestion = async (req, res) => {
     const { anio, fecha_inicio, fecha_fin } = req.body;
 
     if (!anio || !fecha_inicio || !fecha_fin) {
         return res.status(400).json({ message: 'Año, fecha de inicio y fecha de fin son obligatorios.' });
+    }
+
+    const errorFechas = validarRangoFechasGestion(fecha_inicio, fecha_fin);
+    if (errorFechas) {
+        return res.status(400).json({ message: errorFechas });
     }
 
     try {
@@ -38,6 +57,15 @@ const getGestiones = async (req, res) => {
 const updateGestion = async (req, res) => {
     const { id } = req.params;
     const { anio, fecha_inicio, fecha_fin, estado } = req.body;
+
+    if (!anio || !fecha_inicio || !fecha_fin || !estado) {
+        return res.status(400).json({ message: 'Año, fecha de inicio, fecha de fin y estado son obligatorios.' });
+    }
+
+    const errorFechas = validarRangoFechasGestion(fecha_inicio, fecha_fin);
+    if (errorFechas) {
+        return res.status(400).json({ message: errorFechas });
+    }
 
     try {
         if (estado === 'activa') {

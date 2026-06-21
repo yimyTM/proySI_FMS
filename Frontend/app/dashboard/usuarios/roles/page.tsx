@@ -28,6 +28,7 @@ import { format } from "date-fns"
 import { es } from "date-fns/locale"
 import { Shield, Plus, Trash2, ShieldCheck, AlertCircle } from "lucide-react"
 import { API_URL } from "@/lib/api"
+import { toast } from "sonner"
 
 export default function RolesPage() {
   const [roles, setRoles] = useState<any[]>([])
@@ -54,12 +55,16 @@ export default function RolesPage() {
       const resRoles = await fetch(`${API_URL}/api/roles`, { headers })
       const resPermisos = await fetch(`${API_URL}/api/roles/permisos`, { headers })
       
-      if (resRoles.ok && resPermisos.ok) {
-        setRoles(await resRoles.json())
-        setPermisos(await resPermisos.json())
-      }
+      const rolesData = await resRoles.json().catch(() => null)
+      const permisosData = await resPermisos.json().catch(() => null)
+
+      if (!resRoles.ok) throw new Error(rolesData?.message || "Error al cargar roles")
+      if (!resPermisos.ok) throw new Error(permisosData?.message || "Error al cargar permisos")
+
+      setRoles(rolesData)
+      setPermisos(permisosData)
     } catch (error) {
-      console.error("Error fetching data:", error)
+      toast.error(error instanceof Error ? error.message : "Error al cargar datos")
     } finally {
       setIsLoading(false)
     }
@@ -101,7 +106,9 @@ export default function RolesPage() {
       setSelectedFuncionalidades([])
       fetchData()
     } catch (error) {
-      setFormError("Error de conexión.")
+      const message = error instanceof Error ? error.message : "Error de conexión."
+      setFormError(message)
+      toast.error(message)
     }
   }
 
@@ -117,12 +124,13 @@ export default function RolesPage() {
       
       const data = await res.json()
       if (!res.ok) {
-        alert(data.message || "Error al eliminar el rol")
+        throw new Error(data.message || "Error al eliminar el rol")
       } else {
+        toast.success(data.message || "Rol eliminado correctamente")
         fetchData()
       }
     } catch (error) {
-      console.error("Error deleting role:", error)
+      toast.error(error instanceof Error ? error.message : "Error al eliminar el rol")
     }
   }
 
