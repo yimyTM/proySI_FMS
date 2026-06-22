@@ -6,7 +6,7 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "Gestion Escolar",
   description: "Sistema integral de gestión escolar para unidades educativas",
-  generator: "v0.app",
+  generator: "Tarqui",
   icons: {
     icon: [
       {

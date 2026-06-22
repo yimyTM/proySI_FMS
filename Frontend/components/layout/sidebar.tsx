@@ -361,14 +361,22 @@ export function Sidebar({
             {!isCollapsed && (
               <div className="flex items-center gap-2">
                 <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-sidebar-primary">
-                  <GraduationCap className="h-5 w-5 text-sidebar-primary-foreground" />
+                  <img
+                    src="/logoBuho.webp"
+                    alt="Logo"
+                    className="h-9 w-9 rounded-full"
+                  />
                 </div>
                 <span className="font-semibold text-lg">EduGestión</span>
               </div>
             )}
             {isCollapsed && (
               <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-sidebar-primary">
-                <GraduationCap className="h-5 w-5 text-sidebar-primary-foreground" />
+                <img
+                  src="/logoBuho.webp"
+                  alt="Logo"
+                  className="h-9 w-9 rounded-full"
+                />
               </div>
             )}
             <Button

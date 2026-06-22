@@ -48,13 +48,17 @@ export default function LoginPage() {
           password: formData.password,
         }),
       }).catch(() => {
-        throw new TypeError("No se pudo conectar con el servidor. Verifique que el backend esté activo.");
+        throw new TypeError(
+          "No se pudo conectar con el servidor. Verifique que el backend esté activo.",
+        );
       });
 
       const data = await response.json().catch(() => null);
 
       if (!response.ok) {
-        throw new Error(data?.message || `Error del servidor: ${response.status}`);
+        throw new Error(
+          data?.message || `Error del servidor: ${response.status}`,
+        );
       }
 
       localStorage.setItem("token", data.token);
@@ -188,7 +192,7 @@ export default function LoginPage() {
         </Card>
 
         <p className="text-center text-xs text-muted-foreground mt-6">
-          © 2025 EduGestión - Todos los derechos reservados
+          © 2026 EduGestión - Todos los derechos reservados
         </p>
       </div>
     </div>
