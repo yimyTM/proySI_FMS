@@ -40,6 +40,8 @@ backend/.pgdata/
 /.claude
 /diagram/
 CU27y28.md
+CLAUDE.md
+**/CLAUDE.md
 
 # Coverage
 coverage/

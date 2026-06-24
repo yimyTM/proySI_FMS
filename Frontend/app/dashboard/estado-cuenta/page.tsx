@@ -142,9 +142,7 @@ export default function EstadoCuentaPage() {
 
   const abrirRecordatorio = () => {
     setTutorId(
-      tutoresConCorreo.length === 1
-        ? String(tutoresConCorreo[0].id_tutor)
-        : "",
+      tutoresConCorreo.length === 1 ? String(tutoresConCorreo[0].id_tutor) : "",
     );
     setDialogOpen(true);
   };
@@ -281,7 +279,8 @@ export default function EstadoCuentaPage() {
                     {cuenta.estudiante.apellido}, {cuenta.estudiante.nombre}
                   </h2>
                   <p className="text-sm text-muted-foreground">
-                    CI: {cuenta.estudiante.ci ?? "—"} · {cuenta.estudiante.genero}
+                    CI: {cuenta.estudiante.ci ?? "—"} ·{" "}
+                    {cuenta.estudiante.genero}
                   </p>
                 </div>
                 <Button
