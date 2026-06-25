@@ -471,7 +471,7 @@ CREATE TABLE public.estudiante (
     fecha_registro timestamp without time zone DEFAULT now() NOT NULL,
     observaciones text,
     id_usuario integer,
-    rude character varying(16),
+    rude character varying(17),
     CONSTRAINT estudiante_estado_check CHECK (((estado)::text = ANY ((ARRAY['activo'::character varying, 'inactivo'::character varying, 'retirado'::character varying, 'egresado'::character varying])::text[]))),
     CONSTRAINT estudiante_genero_check CHECK (((genero)::text = ANY (ARRAY[('Masculino'::character varying)::text, ('Femenino'::character varying)::text])))
 );
@@ -2628,7 +2628,8 @@ ALTER TABLE ONLY public.usuario
 
 -- Columnas y FK de estudiante (idempotentes)
 ALTER TABLE public.estudiante ADD COLUMN IF NOT EXISTS id_usuario INTEGER;
-ALTER TABLE public.estudiante ADD COLUMN IF NOT EXISTS rude CHARACTER VARYING(16);
+ALTER TABLE public.estudiante ADD COLUMN IF NOT EXISTS rude CHARACTER VARYING(17);
+ALTER TABLE public.estudiante ALTER COLUMN rude TYPE CHARACTER VARYING(17);
 
 CREATE INDEX IF NOT EXISTS idx_aviso_estudiante_destino ON public.aviso(id_estudiante_destino);
 CREATE INDEX IF NOT EXISTS idx_aviso_destinatario_estado ON public.aviso(destinatario_tipo, estado);
@@ -2664,7 +2665,31 @@ END $$;
 
 CREATE INDEX IF NOT EXISTS idx_estudiante_rude ON public.estudiante(rude);
 
-COMMENT ON COLUMN public.estudiante.rude IS 'Código de registro único del estudiante (15-16 dígitos)';
+COMMENT ON COLUMN public.estudiante.rude IS 'Código de registro único del estudiante (16-17 dígitos numéricos)';
+
+-- Corrige CI con formato invalido (debe ser 6-8 digitos, opcionalmente con guion + complemento, ej: 1047514 o 51362589-1A)
+UPDATE public.estudiante SET ci = '5234871'        WHERE id_estudiante = 1 AND ci = 'EST-2001';
+UPDATE public.estudiante SET ci = '6123487-2A'      WHERE id_estudiante = 2 AND ci = 'EST-2002';
+UPDATE public.estudiante SET ci = '4789213'         WHERE id_estudiante = 3 AND ci = 'EST-2003';
+UPDATE public.estudiante SET ci = '7345612'         WHERE id_estudiante = 4 AND ci = 'EST-2004';
+UPDATE public.estudiante SET ci = '5894231-1K'      WHERE id_estudiante = 5 AND ci = 'EST-2005';
+
+-- Asigna un RUDE aleatorio (16-17 digitos numericos) a los estudiantes que no tengan uno
+UPDATE public.estudiante SET rude = '6557503334381304'   WHERE id_estudiante = 1  AND rude IS NULL;
+UPDATE public.estudiante SET rude = '99644951413793235'  WHERE id_estudiante = 2  AND rude IS NULL;
+UPDATE public.estudiante SET rude = '17580590832339469'  WHERE id_estudiante = 3  AND rude IS NULL;
+UPDATE public.estudiante SET rude = '83980894241404808'  WHERE id_estudiante = 4  AND rude IS NULL;
+UPDATE public.estudiante SET rude = '52017902317029368'  WHERE id_estudiante = 5  AND rude IS NULL;
+UPDATE public.estudiante SET rude = '38871082959952959'  WHERE id_estudiante = 6  AND rude IS NULL;
+UPDATE public.estudiante SET rude = '15647053551720145'  WHERE id_estudiante = 7  AND rude IS NULL;
+UPDATE public.estudiante SET rude = '40950344661561414'  WHERE id_estudiante = 8  AND rude IS NULL;
+UPDATE public.estudiante SET rude = '6886830212086724'   WHERE id_estudiante = 9  AND rude IS NULL;
+UPDATE public.estudiante SET rude = '9668221552999479'   WHERE id_estudiante = 10 AND rude IS NULL;
+UPDATE public.estudiante SET rude = '8382566717096205'   WHERE id_estudiante = 11 AND rude IS NULL;
+UPDATE public.estudiante SET rude = '5538819344072720'   WHERE id_estudiante = 12 AND rude IS NULL;
+UPDATE public.estudiante SET rude = '5582555356445058'   WHERE id_estudiante = 13 AND rude IS NULL;
+UPDATE public.estudiante SET rude = '97289417475964711'  WHERE id_estudiante = 14 AND rude IS NULL;
+UPDATE public.estudiante SET rude = '4654533671392285'   WHERE id_estudiante = 15 AND rude IS NULL;
 
 -- Rol y permisos de estudiante
 INSERT INTO public.rol (nombre_rol, descripcion, estado, fecha_creacion)
