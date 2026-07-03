@@ -32,7 +32,7 @@ interface ChatMessage {
 }
 
 const ROLES_PERMITIDOS = ["SuperUsuario", "Director", "Administrativo"];
-
+const esMobil = /Mobi|Android/i.test(navigator.userAgent);
 const SUGERENCIAS = [
   "Dame la lista completa del plantel docente",
   "¿Qué estudiantes tienen deudas pendientes?",
@@ -76,18 +76,24 @@ export function ChatbotWidget() {
     const recognition = new SR();
     recognition.lang = "es-ES";
     recognition.continuous = true;
-    recognition.interimResults = true;
+    recognition.interimResults = !esMobil;
 
     recognition.onresult = (event: any) => {
-      let interim = "";
-      let final = "";
-      for (let i = event.resultIndex; i < event.results.length; i++) {
+      let finalTexto = "";
+      let interimTexto = "";
+
+      for (let i = 0; i < event.results.length; i++) {
         const transcript = event.results[i][0].transcript;
-        if (event.results[i].isFinal) final += transcript;
-        else interim += transcript;
+        if (event.results[i].isFinal) {
+          finalTexto += transcript;
+        } else {
+          interimTexto += transcript;
+        }
       }
-      if (final) baseTranscriptRef.current += final;
-      setInput((baseTranscriptRef.current + interim).trim());
+
+      // Final acumulado + interim actual (sin duplicar)
+      baseTranscriptRef.current = finalTexto;
+      setInput((finalTexto + interimTexto).trim());
     };
     recognition.onerror = (event: any) => {
       setListening(false);
@@ -256,10 +262,7 @@ export function ChatbotWidget() {
           </div>
 
           {/* Mensajes */}
-          <div
-            ref={scrollRef}
-            className="flex-1 space-y-3 overflow-y-auto p-3"
-          >
+          <div ref={scrollRef} className="flex-1 space-y-3 overflow-y-auto p-3">
             {messages.length === 0 && (
               <div className="space-y-3 py-4">
                 <div className="flex flex-col items-center text-center text-muted-foreground">

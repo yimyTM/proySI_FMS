@@ -36,6 +36,7 @@ const app = express();
 const allowedOrigins = [
   "http://localhost:3000",
   "https://proyectosi1.vercel.app",
+  "https://reflex-vagrantly-pettiness.ngrok-free.dev",
 ];
 
 const corsOptions = {

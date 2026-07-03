@@ -327,8 +327,13 @@ const listarTodas = async (req, res, next) => {
         ON te.id_tutor = ee.id_tutor AND te.id_estudiante = ee.id_estudiante
       JOIN usuario u ON u.id_usuario = ee.id_usuario_supervisor
       LEFT JOIN profesor ps ON ps.id_usuario = ee.id_usuario_supervisor
-      LEFT JOIN inscripcion i
-        ON i.id_estudiante = ee.id_estudiante AND i.estado = 'inscrito'
+      LEFT JOIN LATERAL (
+        SELECT i.id_curso
+        FROM inscripcion i
+        WHERE i.id_estudiante = ee.id_estudiante AND i.estado = 'inscrito'
+        ORDER BY i.id_inscripcion DESC
+        LIMIT 1
+      ) i ON true
       LEFT JOIN curso c ON c.id_curso = i.id_curso
       LEFT JOIN grado g ON g.id_grado = c.id_grado
       ${filtroFecha}

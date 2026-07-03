@@ -1,4 +1,3 @@
-// next.config.js
 module.exports = {
   typescript: {
     ignoreBuildErrors: true,
@@ -6,11 +5,12 @@ module.exports = {
   images: {
     unoptimized: true,
   },
+  allowedDevOrigins: ["reflex-vagrantly-pettiness.ngrok-free.dev"],
   async rewrites() {
     return [
       {
-        source: '/api/:path*',
-        destination: 'http://localhost:5000/api/:path*',
+        source: "/api/:path*",
+        destination: "http://localhost:5000/api/:path*",
       },
     ];
   },

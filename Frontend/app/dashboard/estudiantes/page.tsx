@@ -44,9 +44,11 @@ import {
   UserCheck,
   Download,
   Eye,
+  EyeOff,
   KeyRound,
 } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { PASSWORD_HINT, validatePasswordStrength } from "@/lib/password-policy";
 import {
   estudiantesApi,
   type Estudiante,
@@ -118,6 +120,7 @@ export default function EstudiantesPage() {
   const [showCuentaDialog, setShowCuentaDialog] = useState(false);
   const [cuentaEstudiante, setCuentaEstudiante] = useState<Estudiante | null>(null);
   const [cuentaForm, setCuentaForm] = useState({ username: "", password: "", email: "" });
+  const [showCuentaPassword, setShowCuentaPassword] = useState(false);
   const [savingCuenta, setSavingCuenta] = useState(false);
 
   const load = useCallback(async () => {
@@ -242,6 +245,8 @@ export default function EstudiantesPage() {
     if (!cuentaForm.username || !cuentaForm.password || !cuentaForm.email) {
       return toast.error("Usuario, contraseña y email son obligatorios.");
     }
+    const pwError = validatePasswordStrength(cuentaForm.password);
+    if (pwError) return toast.error(pwError);
     setSavingCuenta(true);
     try {
       const r = await adminEstudianteApi.crearCuenta(cuentaEstudiante.id_estudiante, cuentaForm);
@@ -615,12 +620,24 @@ export default function EstudiantesPage() {
             </div>
             <div className="space-y-1">
               <Label>Contraseña</Label>
-              <Input
-                type="password"
-                placeholder="Mínimo 10 caracteres"
-                value={cuentaForm.password}
-                onChange={(e) => setCuentaForm((f) => ({ ...f, password: e.target.value }))}
-              />
+              <p className="text-xs text-muted-foreground">{PASSWORD_HINT}</p>
+              <div className="relative">
+                <Input
+                  type={showCuentaPassword ? "text" : "password"}
+                  placeholder="Mínimo 10 caracteres"
+                  value={cuentaForm.password}
+                  onChange={(e) => setCuentaForm((f) => ({ ...f, password: e.target.value }))}
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowCuentaPassword((v) => !v)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  aria-label={showCuentaPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                >
+                  {showCuentaPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
             </div>
           </div>
           <DialogFooter>

@@ -25,7 +25,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { UserCog, Plus, MoreHorizontal, Edit, UserX, AlertCircle, Mail } from "lucide-react"
+import { UserCog, Plus, MoreHorizontal, Edit, UserX, AlertCircle, Mail, Eye, EyeOff } from "lucide-react"
 import { format } from "date-fns"
 import { API_URL } from "@/lib/api"
 import { PASSWORD_HINT, validatePasswordStrength } from "@/lib/password-policy"
@@ -40,6 +40,7 @@ export default function UsuariosPage() {
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [isEditOpen, setIsEditOpen] = useState(false)
   const [formError, setFormError] = useState("")
+  const [showPassword, setShowPassword] = useState(false)
 
   // Form states
   const [formData, setFormData] = useState({
@@ -264,11 +265,23 @@ export default function UsuariosPage() {
               <div className="grid gap-2">
                 <Label htmlFor="create-password">Contraseña *</Label>
                 <p className="text-xs text-muted-foreground">{PASSWORD_HINT}</p>
-                <Input 
-                  id="create-password" type="password"
-                  value={formData.password}
-                  onChange={(e) => setFormData({...formData, password: e.target.value})}
-                />
+                <div className="relative">
+                  <Input
+                    id="create-password"
+                    type={showPassword ? "text" : "password"}
+                    value={formData.password}
+                    onChange={(e) => setFormData({...formData, password: e.target.value})}
+                    className="pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((v) => !v)}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="create-rol">Asignar Rol *</Label>

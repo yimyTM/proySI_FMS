@@ -12,22 +12,28 @@ const buscarEstudiantes = async (req, res, next) => {
     }
 
     const searchTerm = `%${q.trim()}%`;
+
     const query = `
-      SELECT DISTINCT e.id_estudiante, e.nombre, e.apellido, e.ci,
-                      c.id_curso, c.paralelo, g.nombre_grado
-      FROM estudiante e
-      LEFT JOIN inscripcion i ON e.id_estudiante = i.id_estudiante AND i.estado = 'inscrito'
-      LEFT JOIN curso c ON i.id_curso = c.id_curso
-      LEFT JOIN grado g ON c.id_grado = g.id_grado
-      WHERE e.estado = 'activo'
-        AND (
-          e.nombre ILIKE $1 OR
-          e.apellido ILIKE $1 OR
-          e.ci ILIKE $1 OR
-          c.paralelo ILIKE $1 OR
-          g.nombre_grado ILIKE $1
-        )
-      ORDER BY e.apellido, e.nombre
+      SELECT id_estudiante, nombre, apellido, ci, id_curso, paralelo, nombre_grado
+      FROM (
+        SELECT DISTINCT ON (e.id_estudiante)
+               e.id_estudiante, e.nombre, e.apellido, e.ci,
+               c.id_curso, c.paralelo, g.nombre_grado
+        FROM estudiante e
+        LEFT JOIN inscripcion i ON e.id_estudiante = i.id_estudiante AND i.estado = 'inscrito'
+        LEFT JOIN curso c ON i.id_curso = c.id_curso
+        LEFT JOIN grado g ON c.id_grado = g.id_grado
+        WHERE e.estado = 'activo'
+          AND (
+            e.nombre ILIKE $1 OR
+            e.apellido ILIKE $1 OR
+            e.ci ILIKE $1 OR
+            c.paralelo ILIKE $1 OR
+            g.nombre_grado ILIKE $1
+          )
+        ORDER BY e.id_estudiante, i.id_inscripcion DESC NULLS LAST
+      ) sub
+      ORDER BY apellido, nombre
       LIMIT 20
     `;
     const { rows } = await pool.query(query, [searchTerm]);
