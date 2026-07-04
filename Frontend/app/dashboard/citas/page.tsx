@@ -37,7 +37,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { CalendarClock, Check, X, Repeat, Plus, Video, MapPin } from "lucide-react";
+import {
+  CalendarClock,
+  Check,
+  X,
+  Repeat,
+  Plus,
+  Video,
+  MapPin,
+  Eye,
+} from "lucide-react";
 import {
   citasApi,
   Cita,
@@ -45,6 +54,7 @@ import {
   ModalidadCita,
   DIAS_SEMANA,
 } from "@/lib/Ciclo4api";
+import { estructuraApi, Profesor } from "@/lib/ciclo2Api";
 
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 const fmtFecha = (iso: string | null) =>
@@ -58,6 +68,15 @@ const estadoCita: Record<string, string> = {
   cancelada: "bg-destructive/10 text-destructive",
   alternativa: "bg-info/10 text-info",
 };
+
+function DetRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex justify-between gap-4">
+      <span className="text-muted-foreground">{label}</span>
+      <span className="text-right font-medium">{value}</span>
+    </div>
+  );
+}
 
 export default function CitasDashboardPage() {
   const [role, setRole] = useState<number | null>(null);
@@ -413,10 +432,20 @@ function CitasProfesor() {
 // ── Vista DIRECTOR ────────────────────────────────────────────────────────────
 function CitasDirector() {
   const [citas, setCitas] = useState<Cita[]>([]);
+  const [profesores, setProfesores] = useState<Profesor[]>([]);
   const [loading, setLoading] = useState(false);
   const [estado, setEstado] = useState("");
+  const [profesorId, setProfesorId] = useState("");
   const [desde, setDesde] = useState("");
   const [hasta, setHasta] = useState("");
+  const [detalle, setDetalle] = useState<Cita | null>(null);
+
+  useEffect(() => {
+    estructuraApi
+      .getProfesores()
+      .then(setProfesores)
+      .catch(() => {});
+  }, []);
 
   const cargar = async () => {
     setLoading(true);
@@ -424,6 +453,7 @@ function CitasDirector() {
       setCitas(
         await citasApi.listar({
           estado: estado || undefined,
+          id_profesor: profesorId || undefined,
           fecha_desde: desde || undefined,
           fecha_hasta: hasta || undefined,
         }),
@@ -437,7 +467,7 @@ function CitasDirector() {
   useEffect(() => {
     cargar();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [estado, desde, hasta]);
+  }, [estado, profesorId, desde, hasta]);
 
   return (
     <div className="space-y-6">
@@ -467,6 +497,25 @@ function CitasDirector() {
                   <SelectItem value="realizada">Realizada</SelectItem>
                   <SelectItem value="cancelada">Cancelada</SelectItem>
                   <SelectItem value="alternativa">Alternativa</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Profesor</Label>
+              <Select
+                value={profesorId || "todos"}
+                onValueChange={(v) => setProfesorId(v === "todos" ? "" : v)}
+              >
+                <SelectTrigger className="w-full sm:w-52">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos</SelectItem>
+                  {profesores.map((p) => (
+                    <SelectItem key={p.id_profesor} value={String(p.id_profesor)}>
+                      {p.nombre} {p.apellido}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -509,6 +558,7 @@ function CitasDirector() {
                     <TableHead>Bloque</TableHead>
                     <TableHead>Modalidad</TableHead>
                     <TableHead>Estado</TableHead>
+                    <TableHead></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -535,6 +585,16 @@ function CitasDirector() {
                           {cap(c.estado)}
                         </Badge>
                       </TableCell>
+                      <TableCell>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="gap-1"
+                          onClick={() => setDetalle(c)}
+                        >
+                          <Eye className="h-4 w-4" /> Detalle
+                        </Button>
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -543,6 +603,64 @@ function CitasDirector() {
           )}
         </CardContent>
       </Card>
+
+      {/* Detalle de la cita */}
+      <Dialog open={detalle !== null} onOpenChange={(o) => !o && setDetalle(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Detalle de la cita</DialogTitle>
+            <DialogDescription>Información completa de la reunión.</DialogDescription>
+          </DialogHeader>
+          {detalle && (
+            <div className="space-y-2 py-2 text-sm">
+              <DetRow
+                label="Profesor"
+                value={`${detalle.profesor_nombre} ${detalle.profesor_apellido}`}
+              />
+              <DetRow
+                label="Tutor"
+                value={`${detalle.tutor_nombre} ${detalle.tutor_apellido}`}
+              />
+              <DetRow
+                label="Estudiante"
+                value={`${detalle.estudiante_nombre} ${detalle.estudiante_apellido}`}
+              />
+              <DetRow label="Fecha" value={fmtFecha(detalle.fecha_cita)} />
+              <DetRow
+                label="Horario"
+                value={`${cap(detalle.dia_semana)} ${hhmm(detalle.hora_inicio)}–${hhmm(detalle.hora_fin)}`}
+              />
+              <DetRow label="Modalidad" value={cap(detalle.modalidad)} />
+              <DetRow label="Estado" value={cap(detalle.estado)} />
+              <div className="border-t pt-2">
+                <p className="text-xs text-muted-foreground">Motivo</p>
+                <p>{detalle.motivo}</p>
+              </div>
+              {detalle.mensaje_alternativa && (
+                <div>
+                  <p className="text-xs text-muted-foreground">
+                    Mensaje de alternativa
+                  </p>
+                  <p>{detalle.mensaje_alternativa}</p>
+                </div>
+              )}
+              {detalle.enlace_videollamada && (
+                <div>
+                  <p className="text-xs text-muted-foreground">Enlace</p>
+                  <a
+                    href={detalle.enlace_videollamada}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="break-all text-primary underline"
+                  >
+                    {detalle.enlace_videollamada}
+                  </a>
+                </div>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

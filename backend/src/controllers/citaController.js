@@ -96,6 +96,12 @@ const registrarHorarioAtencion = async (req, res, next) => {
       id_horario_atencion: result.rows[0].id_horario_atencion,
     });
   } catch (error) {
+    // Bloque duplicado (mismo profesor, día y horas) → violación de UNIQUE.
+    if (error.code === "23505") {
+      return res
+        .status(409)
+        .json({ error: "Ya tienes publicado ese bloque de atención" });
+    }
     next(error);
   }
 };
@@ -394,6 +400,13 @@ const proponerAlternativa = async (req, res, next) => {
       }
     }
 
+    // Bitácora
+    await pool.query(
+      `INSERT INTO bitacora (id_usuario, accion, tabla_afectada, descripcion)
+       VALUES ($1, 'UPDATE', 'cita', 'Propuso horario alternativo para cita ID ${id_cita}')`,
+      [req.usuario.id],
+    );
+
     res.json({ mensaje: "Horario alternativo propuesto correctamente" });
   } catch (error) {
     next(error);
@@ -456,8 +469,42 @@ const cancelarCita = async (req, res, next) => {
       [id_cita],
     );
 
-    // Notificar a la otra parte
-    // ...
+    // Notificar a la otra parte (la que NO canceló) por correo.
+    try {
+      const { id_profesor, id_tutor, dia_semana, hora_inicio } = cita.rows[0];
+      let destino = null;
+      let quienCancelo = "";
+      if (esTutor) {
+        // Canceló el tutor → avisar al profesor (email en usuario)
+        const prof = await pool.query(
+          `SELECT u.email
+           FROM profesor p JOIN usuario u ON u.id_usuario = p.id_usuario
+           WHERE p.id_profesor = $1`,
+          [id_profesor],
+        );
+        destino = prof.rows[0]?.email || null;
+        quienCancelo = "el tutor";
+      } else {
+        // Canceló el profesor → avisar al tutor
+        const tut = await pool.query(
+          `SELECT correo_electronico FROM tutor WHERE id_tutor = $1`,
+          [id_tutor],
+        );
+        destino = tut.rows[0]?.correo_electronico || null;
+        quienCancelo = "el profesor";
+      }
+      if (destino) {
+        await transporter.sendMail({
+          from: process.env.EMAIL_USER,
+          to: destino,
+          subject: "Cita cancelada",
+          text: `La cita del ${dia_semana} a las ${hora_inicio} fue cancelada por ${quienCancelo}.`,
+        });
+      }
+    } catch (mailErr) {
+      // El correo no debe tumbar la cancelación (la cita ya quedó cancelada).
+      console.error("Error al notificar cancelación:", mailErr.message);
+    }
 
     // Bitácora
     await pool.query(
@@ -476,7 +523,7 @@ const cancelarCita = async (req, res, next) => {
 const listarCitas = async (req, res, next) => {
   try {
     const { estado, id_profesor, fecha_desde, fecha_hasta } = req.query;
-    const { rol, id } = req.usuario;
+    const { nombre_rol: rol, id } = req.usuario;
 
     let query = `
       SELECT c.id_cita, c.motivo, c.estado, c.fecha_cita, c.fecha_solicitud,
@@ -505,10 +552,10 @@ const listarCitas = async (req, res, next) => {
       query += ` AND c.id_profesor = $${idx}`;
       params.push(idProf);
       idx++;
-    } else if (rol === "Tutor") {
-      const idTutor = id; // Asumiendo que el usuario tiene id_tutor en el token
-      query += ` AND c.id_tutor = $${idx}`;
-      params.push(idTutor);
+    } else if (rol === "Estudiante" && req.usuario.id_estudiante) {
+      // El tutor entra con la cuenta del estudiante: ve las citas de su hijo.
+      query += ` AND c.id_estudiante = $${idx}`;
+      params.push(req.usuario.id_estudiante);
       idx++;
     } else {
       return res
@@ -641,7 +688,6 @@ const listarMisHorarios = async (req, res, next) => {
   }
 };
 
-// --------------------  EXPORTAR  --------------------
 module.exports = {
   registrarHorarioAtencion,
   listarHorariosDisponibles,

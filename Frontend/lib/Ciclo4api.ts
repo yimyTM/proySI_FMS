@@ -523,8 +523,15 @@ export const citasApi = {
     fecha_desde?: string;
     fecha_hasta?: string;
   }) => {
-    const qs = params
-      ? "?" + new URLSearchParams(params as Record<string, string>).toString()
+    // Solo enviar los filtros con valor (evita mandar "undefined" como texto).
+    const clean: Record<string, string> = {};
+    if (params) {
+      for (const [k, v] of Object.entries(params)) {
+        if (v) clean[k] = String(v);
+      }
+    }
+    const qs = Object.keys(clean).length
+      ? "?" + new URLSearchParams(clean).toString()
       : "";
     return get<{ citas: Cita[] }>(`/api/citas/citas${qs}`).then((r) => r.citas);
   },
