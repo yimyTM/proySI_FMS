@@ -2,7 +2,7 @@ const express = require("express");
 const cors = require("cors");
 require("dotenv").config();
 const pool = require("./config/db");
-
+const { iniciarCronJobs } = require("./services/cronJob");
 const authRoutes = require("./routes/authRoutes");
 const userRoutes = require("./routes/userRoutes");
 const roleRoutes = require("./routes/roleRoutes");
@@ -30,6 +30,7 @@ const estadoCuentaRoutes = require("./routes/estadoCuentaRoutes");
 const avisoRoutes = require("./routes/avisoRoutes");
 const reporteRoutes = require("./routes/reporteRoutes");
 const chatbotRoutes = require("./routes/chatbotRoutes");
+const citaRoutes = require("./routes/citaRoutes");
 
 const app = express();
 
@@ -83,6 +84,7 @@ app.use("/api/estado-cuenta", estadoCuentaRoutes);
 app.use("/api/avisos", avisoRoutes);
 app.use("/api/reportes", reporteRoutes);
 app.use("/api/chatbot", chatbotRoutes);
+app.use("/api/citas", citaRoutes);
 //aqui añaden si quieren sus controllers, para ver si es que funcionan bien
 app.use("/api/libretas", require("./routes/libretaRoutes"));
 app.get("/api/health", (req, res) => {
@@ -105,6 +107,7 @@ const startServer = async () => {
       console.log(`Servidor corriendo en el puerto ${PORT}`);
     });
 
+    iniciarCronJobs();
     server.on("error", (error) => {
       console.error("❌ Error al iniciar el servidor:", error);
     });

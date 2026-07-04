@@ -2800,6 +2800,41 @@ CREATE TABLE IF NOT EXISTS public.libreta_dimension (
 CREATE INDEX IF NOT EXISTS idx_ldim_detalle ON public.libreta_dimension (id_libreta_detalle);
 
 
+CREATE TABLE public.horario_atencion (
+    id_horario_atencion SERIAL PRIMARY KEY,
+    id_profesor INTEGER NOT NULL REFERENCES public.profesor(id_profesor) ON DELETE CASCADE,
+    dia_semana VARCHAR(10) NOT NULL CHECK (dia_semana IN ('lunes','martes','miercoles','jueves','viernes','sabado')),
+    hora_inicio TIME NOT NULL,
+    hora_fin TIME NOT NULL,
+    modalidad VARCHAR(20) NOT NULL CHECK (modalidad IN ('presencial','virtual')),
+    enlace_videollamada VARCHAR(255) NULL,
+    estado VARCHAR(20) DEFAULT 'disponible' CHECK (estado IN ('disponible','ocupado','cancelado')),
+    creado_en TIMESTAMP DEFAULT now(),
+    UNIQUE (id_profesor, dia_semana, hora_inicio, hora_fin)
+);
+
+CREATE TABLE public.cita (
+    id_cita SERIAL PRIMARY KEY,
+    id_horario_atencion INTEGER NOT NULL REFERENCES public.horario_atencion(id_horario_atencion) ON DELETE RESTRICT,
+    id_profesor INTEGER NOT NULL REFERENCES public.profesor(id_profesor),
+    id_tutor INTEGER NOT NULL REFERENCES public.tutor(id_tutor),
+    id_estudiante INTEGER NOT NULL REFERENCES public.estudiante(id_estudiante),
+    motivo TEXT NOT NULL,
+    estado VARCHAR(20) DEFAULT 'pendiente' CHECK (estado IN ('pendiente','confirmada','realizada','cancelada','alternativa')),
+    fecha_cita DATE,
+    fecha_solicitud TIMESTAMP DEFAULT now(),
+    fecha_confirmacion TIMESTAMP NULL,
+    mensaje_alternativa TEXT NULL,
+    creado_en TIMESTAMP DEFAULT now(),
+    actualizado_en TIMESTAMP DEFAULT now()
+);
+
+ALTER TABLE public.notificacion ADD COLUMN id_cita INTEGER NULL;
+ALTER TABLE public.notificacion ADD CONSTRAINT fk_notificacion_cita
+    FOREIGN KEY (id_cita) REFERENCES public.cita(id_cita) ON DELETE SET NULL;
+-- Permitir NULL en id_aviso: una notificación de cita (recordatorio) no está
+-- ligada a un aviso.
+ALTER TABLE public.notificacion ALTER COLUMN id_aviso DROP NOT NULL;
 -- =====================================================================
 -- Seed: poblar la gestion 2025 (id_gestion = 2) para probar libretas.
 -- Crea curso, inscripciones, materias, dimensiones, actividades y notas
