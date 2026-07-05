@@ -181,6 +181,12 @@ const navItems: NavItem[] = [
         roles: [1, 2, 3, 4],
       },
       {
+        title: "Monitoreo académico",
+        href: "/dashboard/monitoreo",
+        icon: BarChart3,
+        roles: [1, 2, 3],
+      },
+      {
         title: "Entregas",
         href: "/dashboard/entregas",
         icon: ArrowRightLeft,

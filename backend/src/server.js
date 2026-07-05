@@ -31,6 +31,7 @@ const avisoRoutes = require("./routes/avisoRoutes");
 const reporteRoutes = require("./routes/reporteRoutes");
 const chatbotRoutes = require("./routes/chatbotRoutes");
 const citaRoutes = require("./routes/citaRoutes");
+const riesgoAcademicoRoutes = require("./routes/riesgoAcademicoRoutes");
 
 const app = express();
 
@@ -85,6 +86,7 @@ app.use("/api/avisos", avisoRoutes);
 app.use("/api/reportes", reporteRoutes);
 app.use("/api/chatbot", chatbotRoutes);
 app.use("/api/citas", citaRoutes);
+app.use("/api/riesgo-academico", riesgoAcademicoRoutes);
 //aqui añaden si quieren sus controllers, para ver si es que funcionan bien
 app.use("/api/libretas", require("./routes/libretaRoutes"));
 app.get("/api/health", (req, res) => {
@@ -96,23 +98,20 @@ app.get("/api/health", (req, res) => {
 app.use(errorHandler);
 // aca :v
 
-const PORT = Number(process.env.PORT) || 5000;
+const PORT = process.env.PORT || 5001;
 
 const startServer = async () => {
   try {
-    await pool.query("SELECT 1");
+    await pool.query("SELECT NOW()");
     console.log("✅ Conectado a PostgreSQL");
 
-    const server = app.listen(PORT, () => {
+    app.listen(PORT, () => {
       console.log(`Servidor corriendo en el puerto ${PORT}`);
     });
-
+    
     iniciarCronJobs();
-    server.on("error", (error) => {
-      console.error("❌ Error al iniciar el servidor:", error);
-    });
   } catch (error) {
-    console.error("❌ Error conectando a la BD:", error);
+    console.error("❌ Error al iniciar el servidor:", error);
     process.exit(1);
   }
 };
