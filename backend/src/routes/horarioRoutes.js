@@ -1,9 +1,10 @@
 const express = require('express');
 const router = express.Router();
-const { getHorarioCurso, createBloqueHorario, deleteBloqueHorario, getHorarioProfesor, editarBloqueHorario, publicarHorario } = require('../controllers/horarioController');
+const { getHorarioCurso, createBloqueHorario, deleteBloqueHorario, getHorarioProfesor, getMiHorario, editarBloqueHorario, publicarHorario } = require('../controllers/horarioController');
 const { verificarToken, esAdminODirector, esAdminDirectorOSecretaria } = require('../middlewares/authMiddleware');
 
 // ── Rutas específicas PRIMERO (antes de /:id genérico, o Express las intercepta) ──
+router.get('/mis-clases', verificarToken, getMiHorario);
 router.get('/curso/:id_curso', verificarToken, getHorarioCurso);
 // CU10 Paso 9: Secretaria (rol 4) también está habilitada para publicar
 router.put('/curso/:id_curso/publicar', verificarToken, esAdminDirectorOSecretaria, publicarHorario);

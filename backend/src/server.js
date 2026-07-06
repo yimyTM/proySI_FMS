@@ -32,6 +32,8 @@ const reporteRoutes = require("./routes/reporteRoutes");
 const chatbotRoutes = require("./routes/chatbotRoutes");
 const citaRoutes = require("./routes/citaRoutes");
 const riesgoAcademicoRoutes = require("./routes/riesgoAcademicoRoutes");
+const licenciaRoutes = require("./routes/licenciaRoutes");
+const reemplazoRoutes = require("./routes/reemplazoRoutes");
 
 const app = express();
 
@@ -87,6 +89,8 @@ app.use("/api/reportes", reporteRoutes);
 app.use("/api/chatbot", chatbotRoutes);
 app.use("/api/citas", citaRoutes);
 app.use("/api/riesgo-academico", riesgoAcademicoRoutes);
+app.use("/api/licencias", licenciaRoutes);
+app.use("/api/reemplazos", reemplazoRoutes);
 //aqui añaden si quieren sus controllers, para ver si es que funcionan bien
 app.use("/api/libretas", require("./routes/libretaRoutes"));
 app.get("/api/health", (req, res) => {

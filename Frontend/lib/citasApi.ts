@@ -110,6 +110,13 @@ export const citasApi = {
     id_tutor: number;
   }) => post<{ mensaje: string; id_cita: number }>("/api/citas/citas", data),
 
+  // Estudiante (tutor): aceptar el horario alternativo propuesto
+  aceptarAlternativa: (idCita: number) =>
+    put<{ mensaje: string }>(
+      `/api/citas/citas/${idCita}/aceptar-alternativa`,
+      {},
+    ),
+
   // Estudiante o Profesor
   cancelar: (idCita: number) =>
     put<{ mensaje: string }>(`/api/citas/citas/${idCita}/cancelar`, {}),

@@ -254,6 +254,26 @@ const navItems: NavItem[] = [
       },
     ],
   },
+  // 6. PERSONAL
+  {
+    title: "Personal",
+    icon: UserCog,
+    roles: [2, 3, 4],
+    children: [
+      {
+        title: "Licencias y Permisos",
+        href: "/dashboard/licencias",
+        icon: CalendarClock,
+        roles: [2, 3, 4],
+      },
+      {
+        title: "Mis Cursos y Horarios",
+        href: "/dashboard/mis-clases",
+        icon: CalendarCheck,
+        roles: [3],
+      },
+    ],
+  },
 ];
 
 interface SidebarProps {

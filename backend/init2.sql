@@ -154,6 +154,8 @@ BEGIN
     RETURN NEW;
 END;
 $$;
+
+
 CREATE FUNCTION public.fn_calcular_edad() RETURNS trigger
     LANGUAGE plpgsql
     AS $$
@@ -2835,6 +2837,101 @@ ALTER TABLE public.notificacion ADD CONSTRAINT fk_notificacion_cita
 -- Permitir NULL en id_aviso: una notificación de cita (recordatorio) no está
 -- ligada a un aviso.
 ALTER TABLE public.notificacion ALTER COLUMN id_aviso DROP NOT NULL;
+
+CREATE TABLE public.licencia_profesor (
+    id_licencia SERIAL PRIMARY KEY,
+    id_profesor INTEGER NOT NULL REFERENCES public.profesor(id_profesor),
+    tipo_licencia VARCHAR(30) NOT NULL CHECK (tipo_licencia IN ('medica', 'vacaciones', 'personal', 'permiso', 'otro')),
+    fecha_inicio DATE NOT NULL,
+    fecha_fin DATE NOT NULL,
+    motivo TEXT,
+    documento_url VARCHAR(255),
+    estado VARCHAR(20) DEFAULT 'pendiente' CHECK (estado IN ('pendiente', 'aprobada', 'rechazada', 'cancelada')),
+    id_usuario_aprobador INTEGER REFERENCES public.usuario(id_usuario),
+    fecha_aprobacion TIMESTAMP,
+    observaciones_aprobador TEXT,
+    fecha_solicitud TIMESTAMP DEFAULT now(),
+    creado_en TIMESTAMP DEFAULT now(),
+    actualizado_en TIMESTAMP DEFAULT now()
+);
+
+CREATE TABLE public.reemplazo_profesor (
+    id_reemplazo SERIAL PRIMARY KEY,
+    id_licencia INTEGER NOT NULL REFERENCES public.licencia_profesor(id_licencia) ON DELETE CASCADE,
+    id_profesor_suplente INTEGER NOT NULL REFERENCES public.profesor(id_profesor),
+    id_curso_materia INTEGER NOT NULL REFERENCES public.curso_materia(id_curso_materia),
+    fecha_inicio DATE NOT NULL,
+    fecha_fin DATE NOT NULL,
+    observaciones TEXT,
+    creado_en TIMESTAMP DEFAULT now()
+);
+
+-- Estado del reemplazo (usado por reemplazoController: asignar/sugerir/cerrar)
+ALTER TABLE public.reemplazo_profesor
+    ADD COLUMN IF NOT EXISTS estado VARCHAR(20) DEFAULT 'activa'
+    CHECK (estado IN ('activa', 'finalizada', 'cancelada'));
+
+ALTER TABLE public.licencia_profesor 
+    ADD COLUMN fecha_fin_real DATE NULL,
+    ADD COLUMN id_usuario_registro INTEGER REFERENCES public.usuario(id_usuario),
+    ADD COLUMN comentario_director TEXT; -- o usar observaciones_aprobador, pero es más claro separar
+
+-- 2. Modificar CHECK de estado para incluir nuevos estados
+ALTER TABLE public.licencia_profesor
+    DROP CONSTRAINT licencia_profesor_estado_check;
+ALTER TABLE public.licencia_profesor
+    ADD CONSTRAINT licencia_profesor_estado_check
+    CHECK (estado IN ('pendiente', 'aprobada', 'rechazada', 'cancelada', 'pendiente_doc', 'cerrada'));
+
+-- 2b. Incluir 'extension' en el CHECK de tipo_licencia (usado por solicitarExtension)
+ALTER TABLE public.licencia_profesor
+    DROP CONSTRAINT IF EXISTS licencia_profesor_tipo_licencia_check;
+ALTER TABLE public.licencia_profesor
+    ADD CONSTRAINT licencia_profesor_tipo_licencia_check
+    CHECK (tipo_licencia IN ('medica', 'vacaciones', 'personal', 'permiso', 'otro', 'extension'));
+
+-- 3. Agregar campo estado_laboral a profesor
+ALTER TABLE public.profesor 
+    ADD COLUMN estado_laboral VARCHAR(20) DEFAULT 'activo' 
+    CHECK (estado_laboral IN ('activo', 'con_licencia', 'inactivo'));
+
+-- 4. Índice para búsquedas rápidas
+CREATE INDEX idx_licencia_profesor_fechas ON public.licencia_profesor(fecha_inicio, fecha_fin);
+CREATE INDEX idx_licencia_profesor_estado ON public.licencia_profesor(estado);
+CREATE INDEX idx_profesor_estado_laboral ON public.profesor(estado_laboral);
+
+CREATE OR REPLACE FUNCTION public.actualizar_estado_profesor_licencia()
+RETURNS TRIGGER AS $$
+BEGIN
+    -- Si la licencia se aprueba, actualizar estado del profesor
+    IF NEW.estado = 'aprobada' AND OLD.estado != 'aprobada' THEN
+        UPDATE profesor SET estado_laboral = 'con_licencia' 
+        WHERE id_profesor = NEW.id_profesor;
+    END IF;
+    
+    -- Si la licencia se cierra (manual o automáticamente), restaurar estado
+    IF NEW.estado = 'cerrada' AND OLD.estado != 'cerrada' THEN
+        UPDATE profesor SET estado_laboral = 'activo' 
+        WHERE id_profesor = NEW.id_profesor;
+    END IF;
+    
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+
+
+ALTER TABLE public.licencia_profesor 
+ADD COLUMN IF NOT EXISTS fecha_fin_real DATE NULL,
+ADD COLUMN IF NOT EXISTS comentario_director TEXT NULL,
+ADD COLUMN IF NOT EXISTS id_usuario_registro INTEGER REFERENCES public.usuario(id_usuario),
+ADD COLUMN IF NOT EXISTS registrado_por_secretaria BOOLEAN DEFAULT FALSE;
+
+
+CREATE TRIGGER trg_actualizar_estado_profesor
+AFTER UPDATE OF estado ON public.licencia_profesor
+FOR EACH ROW
+EXECUTE FUNCTION public.actualizar_estado_profesor_licencia();
 -- =====================================================================
 -- Seed: poblar la gestion 2025 (id_gestion = 2) para probar libretas.
 -- Crea curso, inscripciones, materias, dimensiones, actividades y notas

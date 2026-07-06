@@ -48,6 +48,11 @@ router.get(
   citaController.listarHorariosDisponibles,
 );
 router.post("/citas", soloRol("Estudiante"), citaController.solicitarCita);
+router.put(
+  "/citas/:id_cita/aceptar-alternativa",
+  soloRol("Estudiante"),
+  citaController.aceptarAlternativa,
+);
 
 // ── Estudiante o Profesor ─────────────────────────────────
 router.put(

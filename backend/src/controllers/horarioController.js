@@ -136,6 +136,38 @@ const getHorarioProfesor = async (req, res) => {
     }
 };
 
+// Horario propio del profesor logueado (sus cursos, materias y bloques de clase)
+const getMiHorario = async (req, res) => {
+    try {
+        const prof = await pool.query(
+            'SELECT id_profesor FROM profesor WHERE id_usuario = $1',
+            [req.usuario.id]
+        );
+        if (prof.rows.length === 0) {
+            return res.status(404).json({ message: 'No estas vinculado a un profesor.' });
+        }
+        const idProfesor = prof.rows[0].id_profesor;
+        const horario = await pool.query(`
+            SELECT h.dia_semana, h.hora_inicio, h.hora_fin, h.actividad,
+                   m.nombre_materia, g.nombre_grado, c.paralelo, c.turno
+            FROM horario h
+            JOIN curso c ON h.id_curso = c.id_curso
+            JOIN grado g ON c.id_grado = g.id_grado
+            JOIN curso_materia cm ON h.id_curso = cm.id_curso AND h.id_materia = cm.id_materia
+            JOIN materia m ON cm.id_materia = m.id_materia
+            WHERE cm.id_profesor = $1
+            ORDER BY
+              CASE h.dia_semana
+                WHEN 'lunes' THEN 1 WHEN 'martes' THEN 2 WHEN 'miercoles' THEN 3
+                WHEN 'jueves' THEN 4 WHEN 'viernes' THEN 5 ELSE 6 END,
+              h.hora_inicio
+        `, [idProfesor]);
+        res.json(horario.rows);
+    } catch (error) {
+        res.status(500).json({ message: 'Error al obtener tu horario', error: error.message });
+    }
+};
+
 const editarBloqueHorario = async (req, res) => {
     const { id } = req.params;
     const { id_materia, hora_inicio, hora_fin, actividad } = req.body;
@@ -255,4 +287,4 @@ const publicarHorario = async (req, res) => {
     }
 };
 
-module.exports = { getHorarioCurso, createBloqueHorario, deleteBloqueHorario, getHorarioProfesor, editarBloqueHorario, publicarHorario };
+module.exports = { getHorarioCurso, createBloqueHorario, deleteBloqueHorario, getHorarioProfesor, getMiHorario, editarBloqueHorario, publicarHorario };

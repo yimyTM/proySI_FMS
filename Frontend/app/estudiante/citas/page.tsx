@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { CalendarClock, Send, X, Video, MapPin } from "lucide-react";
+import { CalendarClock, Send, X, Video, MapPin, Check } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -107,6 +107,16 @@ export default function MisCitasPage() {
   const cancelar = async (idCita: number) => {
     try {
       const r = await citasApi.cancelar(idCita);
+      toast.success(r.mensaje);
+      cargarCitas();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Error");
+    }
+  };
+
+  const aceptar = async (idCita: number) => {
+    try {
+      const r = await citasApi.aceptarAlternativa(idCita);
       toast.success(r.mensaje);
       cargarCitas();
     } catch (e) {
@@ -271,6 +281,15 @@ export default function MisCitasPage() {
                       <Badge variant="secondary" className={estadoCita[c.estado]}>
                         {cap(c.estado)}
                       </Badge>
+                      {c.estado === "alternativa" && (
+                        <Button
+                          size="sm"
+                          className="gap-1"
+                          onClick={() => aceptar(c.id_cita)}
+                        >
+                          <Check className="h-4 w-4" /> Aceptar
+                        </Button>
+                      )}
                       {(c.estado === "pendiente" ||
                         c.estado === "confirmada" ||
                         c.estado === "alternativa") && (

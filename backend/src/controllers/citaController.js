@@ -374,12 +374,15 @@ const proponerAlternativa = async (req, res, next) => {
         .json({ error: "El horario alternativo no está disponible" });
     }
 
-    // Actualizar la cita a estado 'alternativa' y guardar el mensaje
+    // Actualizar la cita a estado 'alternativa', guardar el mensaje y
+    // recalcular fecha_cita al día del nuevo bloque propuesto.
     await pool.query(
       `UPDATE cita
        SET estado = 'alternativa',
            mensaje_alternativa = $1,
-           id_horario_atencion = $2
+           id_horario_atencion = $2,
+           fecha_cita = CURRENT_DATE + ((array_position(ARRAY['domingo','lunes','martes','miercoles','jueves','viernes','sabado'],
+             (SELECT dia_semana FROM horario_atencion WHERE id_horario_atencion = $2)) - 1 - EXTRACT(DOW FROM CURRENT_DATE)::int + 7) % 7)
        WHERE id_cita = $3 AND estado = 'pendiente'`,
       [mensaje_alternativa || null, id_horario_atencion_alternativo, id_cita],
     );
@@ -408,6 +411,75 @@ const proponerAlternativa = async (req, res, next) => {
     );
 
     res.json({ mensaje: "Horario alternativo propuesto correctamente" });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// --------------------  TUTOR (cuenta estudiante): ACEPTAR ALTERNATIVA  --------------------
+const aceptarAlternativa = async (req, res, next) => {
+  try {
+    const { id_cita } = req.params;
+    const idEstudiante = req.usuario.id_estudiante;
+
+    // La cita debe estar en 'alternativa' y pertenecer a este estudiante.
+    const citaQuery = `
+      SELECT c.id_cita, c.id_profesor, c.id_estudiante, ha.dia_semana, ha.hora_inicio
+      FROM cita c
+      JOIN horario_atencion ha ON c.id_horario_atencion = ha.id_horario_atencion
+      WHERE c.id_cita = $1 AND c.estado = 'alternativa'
+    `;
+    const cita = await pool.query(citaQuery, [id_cita]);
+    if (cita.rows.length === 0) {
+      return res
+        .status(404)
+        .json({ error: "Cita no encontrada o sin alternativa pendiente" });
+    }
+    if (cita.rows[0].id_estudiante !== idEstudiante) {
+      return res
+        .status(403)
+        .json({ error: "No tiene permiso para aceptar esta alternativa" });
+    }
+
+    // Confirmar con el horario alternativo (recalcula fecha_cita al nuevo día).
+    await pool.query(
+      `UPDATE cita
+       SET estado = 'confirmada',
+           fecha_confirmacion = NOW(),
+           fecha_cita = CURRENT_DATE + ((array_position(ARRAY['domingo','lunes','martes','miercoles','jueves','viernes','sabado'], $2) - 1 - EXTRACT(DOW FROM CURRENT_DATE)::int + 7) % 7)
+       WHERE id_cita = $1`,
+      [id_cita, cita.rows[0].dia_semana],
+    );
+
+    // Notificar al profesor
+    const prof = await pool.query(
+      `SELECT u.email FROM profesor p JOIN usuario u ON u.id_usuario = p.id_usuario WHERE p.id_profesor = $1`,
+      [cita.rows[0].id_profesor],
+    );
+    if (prof.rows[0]?.email) {
+      try {
+        await transporter.sendMail({
+          from: process.env.EMAIL_USER,
+          to: prof.rows[0].email,
+          subject: "Alternativa de cita aceptada",
+          text: `El tutor aceptó el horario alternativo (${cita.rows[0].dia_semana} a las ${cita.rows[0].hora_inicio}). La cita quedó confirmada.`,
+        });
+      } catch (mailErr) {
+        console.error(
+          "Error al notificar aceptación de alternativa:",
+          mailErr.message,
+        );
+      }
+    }
+
+    // Bitácora
+    await pool.query(
+      `INSERT INTO bitacora (id_usuario, accion, tabla_afectada, descripcion)
+       VALUES ($1, 'UPDATE', 'cita', 'Aceptó alternativa y confirmó cita ID ${id_cita}')`,
+      [req.usuario.id],
+    );
+
+    res.json({ mensaje: "Alternativa aceptada. La cita quedó confirmada." });
   } catch (error) {
     next(error);
   }
@@ -694,6 +766,7 @@ module.exports = {
   solicitarCita,
   confirmarCita,
   proponerAlternativa,
+  aceptarAlternativa,
   cancelarCita,
   listarCitas,
   listarMisProfesores,

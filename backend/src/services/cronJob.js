@@ -156,24 +156,114 @@ const actualizarCitasVencidas = async () => {
 };
 
 // Programar los cron jobs
-const iniciarCronJobs = () => {
-  // Todos los días a las 8:00 AM y 8:00 PM
-  cron.schedule("0 8,20 * * *", async () => {
-    await enviarRecordatoriosCitas();
-  });
 
-  // Todos los días a la medianoche (actualizar citas vencidas del día anterior)
-  cron.schedule("0 0 * * *", async () => {
-    await actualizarCitasVencidas();
-  });
+// ----------------------------------------------------
+// FUNCIÓN: Restaurar estado de profesores con licencia vencida
+// ----------------------------------------------------
+const restaurarProfesoresConLicencia = async () => {
+  try {
+    console.log(
+      "⏰ Ejecutando cron: Restauración de profesores con licencia vencida...",
+    );
+
+    // Obtener licencias aprobadas que ya han finalizado y aún no se han restaurado
+    const query = `
+            SELECT id_licencia, id_profesor, fecha_fin
+            FROM licencia_profesor
+            WHERE estado = 'aprobada'
+              AND fecha_fin < CURRENT_DATE
+              AND NOT EXISTS (
+                  SELECT 1 FROM bitacora
+                  WHERE tabla_afectada = 'licencia_profesor'
+                    AND descripcion LIKE '%restaurado%'
+                    AND id_registro_afectado = id_licencia
+              )
+        `;
+    const { rows: licencias } = await pool.query(query);
+
+    if (licencias.length === 0) {
+      console.log("📭 No hay licencias vencidas para restaurar.");
+      return;
+    }
+
+    for (const lic of licencias) {
+      // Actualizar estado de la licencia a 'cerrada'
+      await pool.query(
+        `UPDATE licencia_profesor SET estado = 'cerrada' WHERE id_licencia = $1`,
+        [lic.id_licencia],
+      );
+
+      // Registrar en bitácora
+      await pool.query(
+        `INSERT INTO bitacora (id_usuario, accion, tabla_afectada, id_registro_afectado, descripcion)
+                 VALUES (NULL, 'SISTEMA', 'licencia_profesor', $1, 'Licencia finalizada automáticamente. Profesor restaurado a activo.')`,
+        [lic.id_licencia],
+      );
+
+      // Revertir reemplazos activos de esta licencia: se restaura al titular,
+      // se notifica al suplente que su cobertura terminó y se registra en bitácora.
+      const { rows: reemplazos } = await pool.query(
+        `SELECT r.id_reemplazo, r.fecha_inicio, r.fecha_fin, u.email AS suplente_email
+         FROM reemplazo_profesor r
+         JOIN profesor p ON p.id_profesor = r.id_profesor_suplente
+         LEFT JOIN usuario u ON u.id_usuario = p.id_usuario
+         WHERE r.id_licencia = $1 AND r.estado = 'activa'`,
+        [lic.id_licencia],
+      );
+
+      for (const rp of reemplazos) {
+        await pool.query(
+          `UPDATE reemplazo_profesor SET estado = 'finalizada' WHERE id_reemplazo = $1`,
+          [rp.id_reemplazo],
+        );
+
+        if (rp.suplente_email) {
+          try {
+            await transporter.sendMail({
+              from: process.env.EMAIL_USER,
+              to: rp.suplente_email,
+              subject: "Cobertura finalizada",
+              text: `Su cobertura como profesor suplente (del ${rp.fecha_inicio} al ${rp.fecha_fin}) ha finalizado. El profesor titular retoma sus funciones.`,
+            });
+          } catch (mailErr) {
+            console.error(
+              "❌ Error al notificar fin de cobertura:",
+              mailErr.message,
+            );
+          }
+        }
+
+        await pool.query(
+          `INSERT INTO bitacora (id_usuario, accion, tabla_afectada, id_registro_afectado, descripcion)
+           VALUES (NULL, 'SISTEMA', 'reemplazo_profesor', $1, 'Reemplazo finalizado automáticamente al cerrar la licencia.')`,
+          [rp.id_reemplazo],
+        );
+      }
+
+      console.log(
+        `✅ Profesor ${lic.id_profesor} restaurado (licencia ID ${lic.id_licencia}, ${reemplazos.length} reemplazo(s) revertido(s))`,
+      );
+    }
+  } catch (error) {
+    console.error("❌ Error en restauración de licencias:", error);
+  }
+};
+
+const iniciarCronJobs = () => {
+  cron.schedule("0 8,20 * * *", enviarRecordatoriosCitas);
+  cron.schedule("0 0 * * *", actualizarCitasVencidas);
+
+  cron.schedule("5 0 * * *", restaurarProfesoresConLicencia);
 
   console.log("🕒 Cron jobs iniciados:");
-  console.log("  - Recordatorios: 8:00 AM y 8:00 PM");
+  console.log("  - Recordatorios de citas: 8:00 AM y 8:00 PM");
   console.log("  - Actualización de citas vencidas: 12:00 AM");
+  console.log("  - Restauración de licencias vencidas: 12:05 AM");
 };
 
 module.exports = {
   iniciarCronJobs,
   enviarRecordatoriosCitas,
   actualizarCitasVencidas,
+  restaurarProfesoresConLicencia,
 };
